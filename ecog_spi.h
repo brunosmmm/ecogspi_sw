@@ -15,7 +15,7 @@ typedef struct ECOG_GLUE
 
 } ECOGSPI;
 
-void ECOGSPI_Init(void); //inicialização da interface
+int ECOGSPI_Init(void); //inicialização da interface
 
 
 #endif // ECOG_SPI_H_INCLUDED

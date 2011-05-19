@@ -1,5 +1,10 @@
-//Interface com o CI amplificador de instrumentação programável PGA280 via SPI
-//com o FT2232H
+/********************************************************************************
+ * Interface com o CI amplificador de instrumentação programável PGA280 via SPI
+ * com o FT2232H
+ * ******************************************************************************
+ * arquivo: pga280.c
+ * autor: Bruno Morais (brunosmmm@gmail.com)
+ * ******************************************************************************/
 
 /**TO-DO: Implementar suporte a comunicação com Checksum**/
 
@@ -368,5 +373,27 @@ void PGA280_ControlMux(PGA280 * data, unsigned char select)
     data->DIRTY_FLAGS |= 0x01;
 
     PGA280_Update(data);
+
+}
+
+void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen, 
+                                unsigned char * recvbuf, unsigned char recvlen, unsigned char ecs)
+{
+    unsigned char sendData[buflen+1];
+    
+    if (!data) return;
+    
+    //forma o comando ecs
+    
+    sendData[0] = 0xC0 | (ecs & 0x0F);
+    
+    //copia buffer para o buffer local de envio
+    
+    memcpy(&sendData[1],sendbuf,buflen);
+    
+    //envia comando de ecs + dados para escrita
+    //e lê dados
+    
+    (data->ReadData)(sendData,buflen+1,recvbuf,recvlen);
 
 }

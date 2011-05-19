@@ -1,3 +1,10 @@
+/********************************************************************************
+ * Interface com o CI amplificador de instrumentação programável PGA280 via SPI
+ * com o FT2232H
+ * ******************************************************************************
+ * arquivo: pga280.h
+ * autor: Bruno Morais (brunosmmm@gmail.com)
+ * ******************************************************************************/
 #ifndef PGA280_H_INCLUDED
 #define PGA280_H_INCLUDED
 
@@ -46,11 +53,11 @@ typedef unsigned char BOOL;
 #define PGA280_IOVERR  0x01
 #define PGA280_GAINERR 0x02
 #define PGA280_OUTERR  0x04
-#define PGA280_EF      0x08
+#define PGA280_EF      0x08 //OU de todos os erros possíveis
 #define PGA280_ICAERR  0x10
-#define PGA280_BUFA    0x20
+#define PGA280_BUFA    0x20 //Flag de buffer ativo
 #define PGA280_IARERR  0x40
-#define PGA280_CHKERR  0x80
+#define PGA280_CHKERR  0x80 //Erro de checksum
 
 typedef struct PGA280DATA {
 
@@ -60,10 +67,14 @@ typedef struct PGA280DATA {
 
 	void (*ReadData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura
 	void (*WriteData)(unsigned char *, unsigned char); //ponteiro para função de escrita
+    
+    /**TO-DO: Integrar Read/Write e testar em uma só função**/
 
 } PGA280;
 
 //a função de escrita deve ter: parametro 1: endereço dos dados a escrever, param 2: tamanho dos dados
+//função de leitura (escrita-leitura): param 1: endereço dos dados a escrever, param 2: tamanho dos dados
+//                                     param 3: endereço dos dados lidos, param 4: tamanho dos dados lidos
 
 
 PGA280* PGA280_INIT(void (*WriteDataFunc)(unsigned char *,unsigned char), void (*ReadDataFunc)(unsigned char *, unsigned char, unsigned char *, unsigned char)); //inicialização
@@ -108,4 +119,11 @@ void PGA280_DisableMuxControl(PGA280 * data); //desabilita controle de multiplex
 
 void PGA280_ControlMux(PGA280 * data, unsigned char select); //controla multiplexador externo (necessita ser habilitado antes)
 
+//utiliza o esquema ECS (Extended Chip Select) para selecionar outros escravos SPI e enviar/receber dados
+void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen, 
+                                unsigned char * recvbuf, unsigned char recvlen, unsigned char ecs);
+                                
+
+
+ 
 #endif

@@ -1,4 +1,10 @@
-
+/********************************************************************************
+ * Interface SPI para FT2232H com suporte a interrupções por software
+ * 
+ * ******************************************************************************
+ * arquivo: ft2232h_spi.c
+ * autor: Bruno Morais (brunosmmm@gmail.com)
+ * ******************************************************************************/
 #include "ft2232_spi.h"
 
 static int send_buf(struct ftdi_context *ftdic, const unsigned char *buf,int size);

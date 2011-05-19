@@ -1,3 +1,11 @@
+/********************************************************************************
+ * Interface SPI para FT2232H com suporte a interrupções por software
+ * 
+ * ******************************************************************************
+ * arquivo: ft2232h_spi.h
+ * autor: Bruno Morais (brunosmmm@gmail.com)
+ * ******************************************************************************/
+
 #ifndef FT2232_SPI_H_INCLUDED
 #define FT2232_SPI_H_INCLUDED
 
