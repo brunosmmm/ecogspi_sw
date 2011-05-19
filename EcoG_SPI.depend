@@ -1,0 +1,54 @@
+# depslib dependency file v1.0
+1305510208 source:/home/bruno/Dropbox/Devel/EcoG_SPI/EcoG_SPI/ft2232_spi.c
+	"ft2232_spi.h"
+
+1305510208 /home/bruno/Dropbox/Devel/EcoG_SPI/EcoG_SPI/ft2232_spi.h
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<ctype.h>
+	<ftdi.h>
+	<stdarg.h>
+
+1305556473 source:/home/bruno/Dropbox/Devel/EcoG_SPI/EcoG_SPI/main.c
+	<stdio.h>
+	<stdlib.h>
+	"ft2232_spi.h"
+
+1305508980 source:/home/bruno/Dropbox/Devel/EcoG_SPI/EcoG_SPI/pga280.c
+	"pga280.h"
+
+1305508980 /home/bruno/Dropbox/Devel/EcoG_SPI/EcoG_SPI/pga280.h
+	<stdlib.h>
+	<string.h>
+
+1305510208 source:/home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/ft2232_spi.c
+	"ft2232_spi.h"
+
+1305818344 /home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/ft2232_spi.h
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<ctype.h>
+	<ftdi.h>
+	<stdarg.h>
+
+1305556473 source:/home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/main.c
+	<stdio.h>
+	<stdlib.h>
+	"ft2232_spi.h"
+
+1305818245 source:/home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/ecog_spi.c
+	"ecog_spi.h"
+
+1305816551 /home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/ecog_spi.h
+	"ft2232_spi.h"
+	"pga280.h"
+
+1305818346 /home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/pga280.h
+	<stdlib.h>
+	<string.h>
+
+1305818116 source:/home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/pga280.c
+	"pga280.h"
+
