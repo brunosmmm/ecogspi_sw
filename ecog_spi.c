@@ -11,7 +11,7 @@ static void FT2232_PGA280_ReadData(unsigned char * sendbuf , unsigned char bufle
 int ECOGSPI_Init(void)
 {
     int initStatus = 0x00;
-    
+
     //inicialização FTDI2232
     EcoGSPIData.ft2232spi = FT2232SPI_INIT(0,0,FT2232SPI_CPHA1,TRUE,12);
 
@@ -26,13 +26,13 @@ int ECOGSPI_Init(void)
 static void FT2232_PGA280_WriteData(unsigned char * sendbuf , unsigned char buflen)
 {
     //escreve dados: escreve o comando de escrita
-    FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi, buflen, 0, sendbuf, NULL);
+    FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi, buflen, 0, sendbuf, NULL,1,0);
 
 }
 
 static void FT2232_PGA280_ReadData(unsigned char * sendbuf , unsigned char buflen, unsigned char * readbuf, unsigned char readlen)
 {
     //lê dados: primeiro escreve o comando de leitura e depois recebe os dados
-    FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi, buflen, readlen, sendbuf, readbuf);
+    FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi, buflen, readlen, sendbuf, readbuf,1,0);
 
 }

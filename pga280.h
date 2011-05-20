@@ -67,7 +67,7 @@ typedef struct PGA280DATA {
 
 	void (*ReadData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura
 	void (*WriteData)(unsigned char *, unsigned char); //ponteiro para função de escrita
-    
+
     /**TO-DO: Integrar Read/Write e testar em uma só função**/
 
 } PGA280;
@@ -120,10 +120,9 @@ void PGA280_DisableMuxControl(PGA280 * data); //desabilita controle de multiplex
 void PGA280_ControlMux(PGA280 * data, unsigned char select); //controla multiplexador externo (necessita ser habilitado antes)
 
 //utiliza o esquema ECS (Extended Chip Select) para selecionar outros escravos SPI e enviar/receber dados
-void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen, 
+void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen,
                                 unsigned char * recvbuf, unsigned char recvlen, unsigned char ecs);
-                                
 
 
- 
+
 #endif

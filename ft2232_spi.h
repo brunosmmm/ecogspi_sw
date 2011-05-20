@@ -1,6 +1,6 @@
 /********************************************************************************
  * Interface SPI para FT2232H com suporte a interrupções por software
- * 
+ *
  * ******************************************************************************
  * arquivo: ft2232h_spi.h
  * autor: Bruno Morais (brunosmmm@gmail.com)
@@ -48,7 +48,15 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #define SPI_INVALID_LENGTH	-4
 
 //modo de escrita
-#define SPI_WRITE_MODE 0x10
+#define SPI_WRITE_MODE1 0x10 //dado sai na descida do clock
+#define SPI_WRITE_MODE2 0x11 //dado sai na subida do clock
+//modo de leitura
+#define SPI_READ_MODE1 0x20 //sample -> subida do clock
+#define SPI_READ_MODE2 0x24 //sample -> descida do clock
+
+//pinos
+#define FT2232_PINS_CS 0x08
+#define FT2232_PINS_CK 0x01
 
 //implementação bmorais
 #define FT2232_CKDIV5 0x01 //flag de divisão de clock x5
@@ -82,11 +90,11 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 //etc
 #ifndef TRUE
-    #define TRUE 0x01
+#define TRUE 0x01
 #endif
 
 #ifndef FALSE
-    #define FALSE 0x00
+#define FALSE 0x00
 #endif
 
 #define FTDI_VID		0x0403
@@ -96,18 +104,14 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #define BITMODE_BITBANG_SPI	2
 
 //declaração retirada de programmer.h @477 (modificado)
-struct usbdev_status {
-	uint16_t vendor_id;
-	uint16_t device_id;
-	int status;
-	const char *vendor_name;
-	const char *device_name;
+struct usbdev_status
+{
+    uint16_t vendor_id;
+    uint16_t device_id;
+    int status;
+    const char *vendor_name;
+    const char *device_name;
 };
-//extern const struct usbdev_status devs_ft2232spi[];
-void print_supported_usbdevs(const struct usbdev_status *devs);
-
-int ft2232_spi_init(void); //inicialização
-int ft2232_spi_send_command(unsigned int writecnt, unsigned int readcnt,const unsigned char *writearr, unsigned char *readarr); //read-write
 
 //flash.h
 int max(int a, int b);
@@ -115,40 +119,46 @@ int max(int a, int b);
 //implementação real
 
 //armazena estado e configurações da interface SPI no FT2232H
-typedef struct FT2232SPIDATA {
+typedef struct FT2232SPIDATA
+{
 
-	unsigned char OP_MODE; //modo de operação
+    unsigned char OP_MODE; //modo de operação
 
-	unsigned char BUS_VAL_LOW; //estado dos pinos baixos (ADBUS0-7)
-	unsigned char BUS_VAL_HIGH; //estado dos pinos altos (ACBUS0-7)
-	unsigned char BUS_DIR_LOW; //direção dos pinos baixos (ADBUS0-7)
-	unsigned char BUS_DIR_HIGH; //direção dos pinos altos (ACBUS0-7)
+    unsigned char BUS_VAL_LOW; //estado dos pinos baixos (ADBUS0-7)
+    unsigned char BUS_VAL_HIGH; //estado dos pinos altos (ACBUS0-7)
+    unsigned char BUS_DIR_LOW; //direção dos pinos baixos (ADBUS0-7)
+    unsigned char BUS_DIR_HIGH; //direção dos pinos altos (ACBUS0-7)
 
-	unsigned char FT2232_FLAGS; //flags do FT2232H
+    unsigned char FT2232_FLAGS; //flags do FT2232H
 
-	unsigned char CKDIV_LOW; //divisor de clock, byte baixo
-	unsigned char CKDIV_HIGH; //divisor de clock, byte alto
+    unsigned char CKDIV_LOW; //divisor de clock, byte baixo
+    unsigned char CKDIV_HIGH; //divisor de clock, byte alto
 
-	//configuração em alto nível
-	unsigned char CK_MODE; //modo do clock -> dados gravados na subida/descida
-	unsigned char CS_MODE; //modo do cs -> ativo alto/baixo
+    //configuração em alto nível
+    unsigned char CK_MODE; //modo do clock -> dados gravados na subida/descida
+    unsigned char CS_MODE; //modo do cs -> ativo alto/baixo
 
-	//habilita interrupções por software no modo cíclico
-	unsigned char EnableInterrupts;
+    //habilita interrupções por software no modo cíclico
+    unsigned char EnableInterrupts;
 
-	//mascaramento de "interrupções" em ACBUS0-7  e ADBUS0-7, respectivamente
-	unsigned char InterruptMaskHigh;
-	unsigned char InterruptMaskLow;
+    //mascaramento de "interrupções" em ACBUS0-7  e ADBUS0-7, respectivamente
+    unsigned char InterruptMaskHigh;
+    unsigned char InterruptMaskLow;
 
-	//valor de interrupção -> 0 ou 1
-	unsigned char InterruptValueHigh;
-	unsigned char InterruptValueLow;
+    //valor de interrupção -> 0 ou 1
+    unsigned char InterruptValueHigh;
+    unsigned char InterruptValueLow;
 
-	//handler de interrupção
-	void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char);
+    //handler de interrupção
+    void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char);
+    //struct da libftdi
+    struct ftdi_context ftdicContext;
 
-	//struct da libftdi
-	struct ftdi_context ftdicContext;
+    //comando de envio, depende de CPHA
+    unsigned char SEND_MODE;
+
+    //modo de leitura (Sample na subida ou descida do clock)
+    unsigned char READ_MODE;
 
 } FT2232SPI;
 
@@ -171,20 +181,26 @@ double FT2232_GetClock(FT2232SPI * data); //retorna valor do clock
 
 int FT2232_SetClock(FT2232SPI * data, unsigned char ckDiv5, unsigned short ckDiv); //seta clock (divisor)
 
-unsigned char FT2232SPI_GetLowBitsStateAsync(FT2232SPI * data); //lê o estado dos bits (pinos) baixos
-unsigned char FT2232SPI_GetHighBitsStateAsync(FT2232SPI * data); //lê o estado dos bits altos
+unsigned char FT2232SPI_GetLowBitsState(FT2232SPI * data); //lê o estado dos bits (pinos) baixos imediatamente
+unsigned char FT2232SPI_GetHighBitsState(FT2232SPI * data); //lê o estado dos bits altos imediatamente
 
-unsigned char FT2232SPI_GetLowBitsState(FT2232SPI * data); //lê o estado dos bits (pinos) baixos
-unsigned char FT2232SPI_GetHighBitsState(FT2232SPI * data); //lê o estado dos bits altos
+unsigned char FT2232SPI_GetLowBitsLastState(FT2232SPI * data); //lê o último estado dos bits (pinos) baixos
+unsigned char FT2232SPI_GetHighBitsLastState(FT2232SPI * data); //lê o último estado dos bits altos
 
+void FT2232SPI_SetLowBitsState(FT2232SPI * data, unsigned char state); //escreve o estado dos bits (pinos) baixos imediatamente
+void FT2232SPI_SetHighBitsState(FT2232SPI * data, unsigned char state); //escreve o estado dos bits altos imediatamente
+
+void FT2232SPI_SetLowBitsDirection(FT2232SPI * data, unsigned char direction);
+void FT2232SPI_SetHighBitsDirection(FT2232SPI * data, unsigned char direction);
+
+//envia e recebe dados
 int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int readcnt,
-		const unsigned char *writearr, unsigned char *readarr);
+                           const unsigned char *writearr, unsigned char *readarr, unsigned char assertCS, unsigned char holdCS); //holdCS = 1 não desativa CS ao final da transmissão
 
 void FT2232SPI_EnableInterrupts(void);
 void FT2232SPI_DisableInterrupts(void);
 
-
-
+void FT2232SPI_SetCKMode(FT2232SPI * data, unsigned char CKMode); //seta modo do clock
 
 
 #endif // FT2232_SPI_H_INCLUDED
