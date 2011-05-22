@@ -11,7 +11,7 @@ static int send_buf(struct ftdi_context *ftdic, const unsigned char *buf,int siz
 static int get_buf(struct ftdi_context *ftdic, const unsigned char *buf,int size);
 
 //gambiarra para debug output
-static int verbose = 2;
+static int verbose = 0;
 
 const struct usbdev_status devs_ft2232spi[] =
 {
@@ -28,9 +28,6 @@ const struct usbdev_status devs_ft2232spi[] =
  *  value: 0x18  OE=high, CS=high, DI=low, DO=low, SK=low
  *    dir: 0x1b  OE=output, CS=output, DI=input, DO=output, SK=output
  */
-//static uint8_t cs_bits = 0x08;
-//static uint8_t out_values = 0x09; //CS e CK high
-//static uint8_t pindir = 0x0b;
 
 static int send_buf(struct ftdi_context *ftdic, const unsigned char *buf,
                     int size)
@@ -111,7 +108,7 @@ static int busHigh_readState(struct ftdi_context * ftdic, unsigned char * dest)
 }
 
 int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int readcnt,
-                           const unsigned char *writearr, unsigned char *readarr,unsigned char assertCS, unsigned char holdCS)
+                           const unsigned char *writearr, unsigned char *readarr,unsigned char CSControl)
 {
     struct ftdi_context *ftdic = &data->ftdicContext;
     static unsigned char *buf = NULL;
@@ -149,16 +146,17 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
      * operations.
      */
 
-    if (assertCS)
+    if (CSControl & FT2232SPI_RW_ASSERTCS)
     {
 
     msg_pspew("Assert CS#\n");
 
     //desliga CS (spi ativado)
 
-    buf[i++] = SET_BITS_LOW; //comando para setar estado dos bits
+    buf[i++] = FT2232_CMD_SETDATA_LOW; //comando para setar estado dos bits
     buf[i++] = data->BUS_VAL_LOW & ~FT2232_PINS_CS; //desativa CS
     buf[i++] = data->BUS_DIR_LOW; //direção dos pinos conservada
+
     }
     //se writecnt é positivo, haverá transferência
 
@@ -205,7 +203,7 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
         }
     }
 
-    if (!holdCS)
+    if (!(CSControl & FT2232SPI_RW_HOLDCS))
     {
 
     msg_pspew("De-assert CS#\n");

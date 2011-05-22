@@ -88,6 +88,12 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 //erros
 #define FT2232SPI_HWERROR 1
 
+//controle de CS na escrita/leitura
+#define FT2232SPI_RW_ASSERTCS      0x01 //baixa cs antes da escrita/leitura e levanta no final (normal)
+#define FT2232SPI_RW_HOLDCS        0x02 //não baixa cs antes da escrita e nem levanta no final (depende do estado inicial de cs, não faz nada)
+#define FT2232SPI_RW_ASSERTHOLDCS  0x03 //baixa cs antes da escrita e não levanta no final
+#define FT2232SPI_RW_NONE          0x00 //não baixa cs antes da escrita, mas levanta no final
+
 //etc
 #ifndef TRUE
 #define TRUE 0x01
@@ -195,7 +201,7 @@ void FT2232SPI_SetHighBitsDirection(FT2232SPI * data, unsigned char direction);
 
 //envia e recebe dados
 int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int readcnt,
-                           const unsigned char *writearr, unsigned char *readarr, unsigned char assertCS, unsigned char holdCS); //holdCS = 1 não desativa CS ao final da transmissão
+                           const unsigned char *writearr, unsigned char *readarr, unsigned char CSControl); //holdCS = 1 não desativa CS ao final da transmissão
 
 void FT2232SPI_EnableInterrupts(void);
 void FT2232SPI_DisableInterrupts(void);
