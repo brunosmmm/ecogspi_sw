@@ -13,7 +13,7 @@
 //valores padrão dos registradores do PGA280
 static const unsigned char PGA280_DEFAULT[13] = {0x00, 0x00, 0x00, 0x19, 0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00};
 
-PGA280* PGA280_INIT(void (*WriteDataFunc)(unsigned char *,unsigned char), void (*ReadDataFunc)(unsigned char *, unsigned char, unsigned char *, unsigned char))
+PGA280* PGA280_INIT(void (*ReadWriteDataFunc)(unsigned char *, unsigned char, unsigned char *, unsigned char))
 {
 	PGA280* pgaData;
 
@@ -21,12 +21,11 @@ PGA280* PGA280_INIT(void (*WriteDataFunc)(unsigned char *,unsigned char), void (
 
 	if (!pgaData) return NULL;
 
-	//coloca valores default nos registradores
+	//coloca valores default nos registradores -> por quê??
 	memcpy(pgaData->REG_DATA,PGA280_DEFAULT,13);
 
 	//seta funções de leitura e escrita em baixo nível
-	pgaData->ReadData = ReadDataFunc;
-	pgaData->WriteData = WriteDataFunc;
+	pgaData->ReadWriteData = ReadWriteDataFunc;
 
 	return pgaData;
 }
@@ -97,7 +96,7 @@ void PGA280_WriteRegister(PGA280 * data, unsigned char RegNum, unsigned char Reg
     sendbuf[0] = PGA280_CMD_WRITE | (RegNum & 0x0F); //comando de escrita no registrador RegNum
     sendbuf[1] = RegVal; //valor
 
-	(data->WriteData)(sendbuf,2);
+	(data->ReadWriteData)(sendbuf,2,NULL,0);
 }
 
 unsigned char PGA280_ReadRegister(PGA280 * data, unsigned char RegNum)
@@ -113,7 +112,7 @@ unsigned char PGA280_ReadRegister(PGA280 * data, unsigned char RegNum)
     sendbuf = PGA280_CMD_READ | (RegNum & 0x0F); //comando de leitura do registrador RegNum
 
 
-    (data->ReadData)(&sendbuf,1,&recvbuf,1);
+    (data->ReadWriteData)(&sendbuf,1,&recvbuf,1);
 
     return recvbuf;
 }
@@ -376,24 +375,24 @@ void PGA280_ControlMux(PGA280 * data, unsigned char select)
 
 }
 
-void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen, 
+void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen,
                                 unsigned char * recvbuf, unsigned char recvlen, unsigned char ecs)
 {
     unsigned char sendData[buflen+1];
-    
+
     if (!data) return;
-    
+
     //forma o comando ecs
-    
+
     sendData[0] = 0xC0 | (ecs & 0x0F);
-    
+
     //copia buffer para o buffer local de envio
-    
+
     memcpy(&sendData[1],sendbuf,buflen);
-    
+
     //envia comando de ecs + dados para escrita
     //e lê dados
-    
-    (data->ReadData)(sendData,buflen+1,recvbuf,recvlen);
+
+    (data->ReadWriteData)(sendData,buflen+1,recvbuf,recvlen);
 
 }

@@ -65,10 +65,7 @@ typedef struct PGA280DATA {
 
 	unsigned short DIRTY_FLAGS; //flaga os bits como "sujos", serão escritos na próxima escrita geral
 
-	void (*ReadData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura
-	void (*WriteData)(unsigned char *, unsigned char); //ponteiro para função de escrita
-
-    /**TO-DO: Integrar Read/Write e testar em uma só função**/
+	void (*ReadWriteData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura/escrita
 
 } PGA280;
 
@@ -77,7 +74,7 @@ typedef struct PGA280DATA {
 //                                     param 3: endereço dos dados lidos, param 4: tamanho dos dados lidos
 
 
-PGA280* PGA280_INIT(void (*WriteDataFunc)(unsigned char *,unsigned char), void (*ReadDataFunc)(unsigned char *, unsigned char, unsigned char *, unsigned char)); //inicialização
+PGA280* PGA280_INIT(void (*ReadWriteDataFunc)(unsigned char *, unsigned char, unsigned char *, unsigned char)); //inicialização
 
 void PGA280_FREE(PGA280 * data); //liberação
 

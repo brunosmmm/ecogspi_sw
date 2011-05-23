@@ -34,6 +34,10 @@
 		<Linker>
 			<Add option="-L `libftdi-config --libs`" />
 		</Linker>
+		<Unit filename="ads1259.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ads1259.h" />
 		<Unit filename="ecog_spi.c">
 			<Option compilerVar="CC" />
 		</Unit>

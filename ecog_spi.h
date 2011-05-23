@@ -6,12 +6,14 @@
 
 #include "ft2232_spi.h"
 #include "pga280.h"
+#include "ads1259.h"
 
 typedef struct ECOG_GLUE
 {
 
   FT2232SPI * ft2232spi;
   PGA280 * pga280;
+  ADS1259 * ads1259;
 
 } ECOGSPI;
 

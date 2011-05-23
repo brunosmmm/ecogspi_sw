@@ -5,9 +5,7 @@ static ECOGSPI EcoGSPIData;
 
 
 //protótipos de funções locais para comunicação
-static void FT2232_PGA280_WriteData(unsigned char * sendbuf, unsigned char buflen); //escreve em um registrador do PGA280 via SPI
-static void FT2232_PGA280_ReadData(unsigned char * sendbuf , unsigned char buflen, unsigned char * readbuf, unsigned char readlen); //lê um registrador do PGA280 via SPI
-
+static void FT2232_PGA280_ReadWriteData(unsigned char * sendbuf , unsigned char buflen, unsigned char * readbuf, unsigned char readlen); //escreve e/ou lê um registrador do PGA280 via SPI
 static void FT2232_ADS1259_WriteReadData(unsigned char * writeBuf, unsigned char writeLen, unsigned char * readBuf, unsigned char readLen); //envia e recebe dados do ADS1259 através do PGA280
 
 int ECOGSPI_Init(void)
@@ -20,19 +18,15 @@ int ECOGSPI_Init(void)
     initStatus = FT2232SPI_HWINIT(EcoGSPIData.ft2232spi,FTDI_VID,FTDI_FT2232H_PID,INTERFACE_A);
 
     //inicialização PGA280
-    EcoGSPIData.pga280 = PGA280_INIT(FT2232_PGA280_WriteData,FT2232_PGA280_ReadData);
+    EcoGSPIData.pga280 = PGA280_INIT(FT2232_PGA280_ReadWriteData);
+
+    //inicialização ADS1259
+    EcoGSPIData.ads1259 = ADS1259_INIT(FT2232_ADS1259_WriteReadData);
 
     return initStatus;
 }
 
-static void FT2232_PGA280_WriteData(unsigned char * sendbuf , unsigned char buflen)
-{
-    //escreve dados: escreve o comando de escrita
-    FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi, buflen, 0, sendbuf, NULL,FT2232SPI_RW_ASSERTCS);
-
-}
-
-static void FT2232_PGA280_ReadData(unsigned char * sendbuf , unsigned char buflen, unsigned char * readbuf, unsigned char readlen)
+static void FT2232_PGA280_ReadWriteData(unsigned char * sendbuf , unsigned char buflen, unsigned char * readbuf, unsigned char readlen)
 {
     //lê dados: primeiro escreve o comando de leitura e depois recebe os dados
     FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi, buflen, readlen, sendbuf, readbuf,FT2232SPI_RW_ASSERTCS);
