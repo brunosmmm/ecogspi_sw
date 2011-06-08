@@ -53,6 +53,9 @@ unsigned char ADS1259_ReadRegister(ADS1259 * data, unsigned char RegNum); //lê 
 void ADS1259_WriteMultiRegister(ADS1259 * data, unsigned char RegStartNum, unsigned char RegCount, unsigned char * RegValsSource); //escreve vários registradores de uma vez
 void ADS1259_ReadMultiRegister(ADS1259 * data, unsigned char RegStartNum, unsigned char RegCount, unsigned char * RegValsDest); //lê vários registradores de uma vez
 
+void ADS1259_Reset(ADS1259 * data);
+void ADS1259_StopContinuous(ADS1259 * data);
 
+void ADS1259_EnableSyncOut(ADS1259 * data);
 
 #endif // ADS1259_H_INCLUDED

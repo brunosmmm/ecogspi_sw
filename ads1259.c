@@ -86,7 +86,7 @@ void ADS1259_FullUpdate(ADS1259 * data)
 
     //realiza escrita
 
-    ADS1259_WriteMultiRegister(data,0x00,9,data->REG_DATA);
+    //ADS1259_WriteMultiRegister(data,0x00,9,data->REG_DATA);
 
     //realiza leitura
 
@@ -152,7 +152,6 @@ void ADS1259_ReadMultiRegister(ADS1259 * data, unsigned char RegStartNum, unsign
 
     //dados para envio e recepção
     unsigned char sendbuf[2];
-    unsigned char recvbuf;
 
 	if ((RegStartNum > 8) || (!data)) return;
 
@@ -160,6 +159,42 @@ void ADS1259_ReadMultiRegister(ADS1259 * data, unsigned char RegStartNum, unsign
     sendbuf[0] = ADS1259_CMD_RREG | (RegStartNum & 0x0F); //comando de leitura do registrador RegNum
     sendbuf[1] = RegCount - 1;
 
-    (data->ReadWriteData)(sendbuf,2,&recvbuf,RegCount);
+    (data->ReadWriteData)(sendbuf,2,RegValsDest,RegCount);
 
 }
+
+void ADS1259_Reset(ADS1259 * data)
+{
+
+    unsigned char sendbuf = ADS1259_CMD_RESET;
+
+    if (!data) return;
+
+    (data->ReadWriteData)(&sendbuf,1,NULL,0);
+
+}
+
+void ADS1259_StopContinuous(ADS1259 * data)
+{
+
+    unsigned char sendbuf = ADS1259_CMD_SDATAC;
+
+    if (!data) return;
+
+    (data->ReadWriteData)(&sendbuf,1,NULL,0);
+
+}
+
+void ADS1259_EnableSyncOut(ADS1259 * data)
+{
+
+    if (!data) return;
+
+    data->REG_DATA[2] |= 0x20;
+
+    data->DIRTY_FLAGS |= (1<<2);
+
+    ADS1259_SelectiveUpdate(data);
+
+}
+

@@ -155,6 +155,10 @@ typedef struct FT2232SPIDATA
     unsigned char InterruptValueHigh;
     unsigned char InterruptValueLow;
 
+    //tipo de interrupção: borda (0) ou nível (1)
+    unsigned char InterruptTypeHigh;
+    unsigned char InterruptTypeLow;
+
     //handler de interrupção
     void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char);
     //struct da libftdi

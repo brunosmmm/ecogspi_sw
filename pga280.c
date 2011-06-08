@@ -27,6 +27,9 @@ PGA280* PGA280_INIT(void (*ReadWriteDataFunc)(unsigned char *, unsigned char, un
 	//seta funções de leitura e escrita em baixo nível
 	pgaData->ReadWriteData = ReadWriteDataFunc;
 
+	//reseta (software) pga280
+	PGA280_WriteRegister(pgaData,0x01,0x01);
+
 	return pgaData;
 }
 

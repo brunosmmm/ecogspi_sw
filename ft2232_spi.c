@@ -585,3 +585,91 @@ void FT2232SPI_SetHighBitsDirection(FT2232SPI * data, unsigned char direction)
 
 
 }
+
+void FT2232_CYCLE(FT2232SPI * data)
+{
+    unsigned char HighPinsState = 0x00, LowPinsState = 0x00;
+    int i = 0;
+
+    if (!data) return;
+
+    //armazena ultimo valor dos pinos
+
+    HighPinsState = data->BUS_VAL_HIGH;
+    LowPinsState = data->BUS_VAL_LOW;
+
+    //realiza update
+    FT2232SPI_GetHighBitsState(data);
+    FT2232SPI_GetLowBitsState(data);
+
+    //verifica interrupções
+
+    if (data->EnableInterrupts)
+    {
+
+        if (data->InterruptMaskHigh) //há interrupções habilitadas
+        {
+
+            for (i=0;i < 8; i++)
+            {
+
+                if ((data->InterruptMaskHigh & (1<<i)) && !(data->BUS_DIR_HIGH & (1<<i))) //este bit está com interrupção habilitada e é uma entrada
+                {
+
+                    if (data->InterruptTypeHigh & (1<<i)) //a interrupção é do tipo nível
+                    {
+
+                        if (data->InterruptValueHigh & (1<<i)) //a interrupção é do tipo nível alto
+                        {
+
+                            if (data->BUS_VAL_HIGH & (1<<i)) /**TRATAMENTO AQUI**/;//ocorreu interrupção
+
+
+                        }
+                        else //a interrupção é do tipo nível baixo
+                        {
+
+                            if (!(data->BUS_VAL_HIGH & (1<<i))) /**TRATAMENTO AQUI**/; //ocorreu interrupção
+
+                        }
+
+
+                    }
+                    else //a interrupção é do tipo borda
+                    {
+
+                        if (data->InterruptValueHigh & (1<<i)) //a interrupção é tipo borda de subida
+                        {
+
+                            if (!(HighPinsState & (1<<i)) && (data->BUS_VAL_HIGH & (1<<i))) /**TRATAMENTO AQUI**/; //ocorreu interrupção
+
+
+                        }
+                        else //a interrupção é tipo borda de descida
+                        {
+
+                            if ((HighPinsState & (1<<i)) && !(data->BUS_VAL_HIGH & (1<<i))) /**TRATAMENTO AQUI**/; //ocorreu interrupção
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        if (data->InterruptMaskLow)
+        {
+
+
+
+
+
+        }
+
+    }
+
+
+}
