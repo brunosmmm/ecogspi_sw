@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
+	<File name="ads1259.c" open="1" top="0" tabpos="8">
+		<Cursor position="2313" topLine="72" />
+	</File>
 	<File name="ecog_spi.c" open="1" top="0" tabpos="6">
-		<Cursor position="577" topLine="6" />
+		<Cursor position="934" topLine="0" />
 	</File>
 	<File name="ecog_spi.h" open="1" top="0" tabpos="7">
 		<Cursor position="312" topLine="0" />
@@ -14,12 +17,12 @@
 		<Cursor position="7872" topLine="165" />
 	</File>
 	<File name="main.c" open="1" top="1" tabpos="4">
-		<Cursor position="4923" topLine="112" />
+		<Cursor position="5822" topLine="142" />
 	</File>
 	<File name="pga280.c" open="1" top="0" tabpos="5">
-		<Cursor position="2076" topLine="81" />
+		<Cursor position="2543" topLine="76" />
 	</File>
 	<File name="pga280.h" open="1" top="0" tabpos="3">
-		<Cursor position="0" topLine="45" />
+		<Cursor position="0" topLine="83" />
 	</File>
 </CodeBlocks_layout_file>

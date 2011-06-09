@@ -8,6 +8,7 @@
  #include "ads1259.h"
 
 /**Várias funções foram extraídas da biblioteca PGA280 e modificadas para funcionar aqui**/
+static const unsigned char ADS1259_DEFAULT[9] = {0x25, 0x08, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00, 0x40} ;
 
 //inicializa estruturas de dados do ads1259
 ADS1259 * ADS1259_INIT(void (*ReadWriteData)(unsigned char *, unsigned char, unsigned char *, unsigned char))
@@ -17,6 +18,8 @@ ADS1259 * ADS1259_INIT(void (*ReadWriteData)(unsigned char *, unsigned char, uns
     adsData = (ADS1259*)malloc(sizeof(ADS1259));
 
     if (!adsData) return NULL;
+
+    memcpy(adsData->REG_DATA,ADS1259_DEFAULT,9);
 
     adsData->ReadWriteData = ReadWriteData;
 
@@ -86,7 +89,7 @@ void ADS1259_FullUpdate(ADS1259 * data)
 
     //realiza escrita
 
-    //ADS1259_WriteMultiRegister(data,0x00,9,data->REG_DATA);
+    ADS1259_WriteMultiRegister(data,0x00,9,data->REG_DATA);
 
     //realiza leitura
 
@@ -106,7 +109,7 @@ void ADS1259_WriteRegister(ADS1259 * data, unsigned char RegNum, unsigned char R
     //formação do comando
     sendbuf[0] = ADS1259_CMD_WREG | (RegNum & 0x0F); //comando de escrita no registrador RegNum
     sendbuf[1] = 0x00; //escreve em somente um registrador
-    sendbuf[1] = RegVal; //valor
+    sendbuf[2] = RegVal; //valor
 
 	(data->ReadWriteData)(sendbuf,3,NULL,0);
 }

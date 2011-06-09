@@ -144,6 +144,10 @@ int main()
     //FT2232SPI_SetLowBitsState(ft2232Data, 0x00);
     FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, 0x40); //levanta ADRST, iniciando operação do A/D
 
+    //é preciso aguardar algum tempo após o reset do ADS1259 para iniciar as operações com ele
+
+    usleep(10000);
+
     //comando SDATAC - é necessário para sair do modo RDATAC
 
     ADS1259_StopContinuous(EcoGSPIData.ads1259);
@@ -155,6 +159,14 @@ int main()
     //lê os registradores do ADS1259
 
     ADS1259_FullUpdate(EcoGSPIData.ads1259);
+
+    //FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi,2,0,PGA_ECS_ADS_SDATAC,NULL,FT2232SPI_RW_ASSERTCS);
+
+    //FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi,3,9,PGA_ECS_ADS_READ_0,buf,FT2232SPI_RW_ASSERTCS);
+
+    //configura pga para utilizar syncin
+
+    //PGA280_WriteRegister(EcoGSPIData.pga280,0x0C,0x40);
 
     printf("registradores do ADS1259\n");
 
