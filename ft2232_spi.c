@@ -259,7 +259,8 @@ int max(int a, int b)
 
 
 //nova estrutura FT2232SPI
-FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned char ckMode, unsigned char ckDiv5, unsigned short ckDiv)
+FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned char ckMode, unsigned char ckDiv5, unsigned short ckDiv,
+                            void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short))
 {
     FT2232SPI * ftStruct;
 
@@ -276,6 +277,21 @@ FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned 
     ftStruct->CK_MODE = ckMode;
 
     /* inicialização do modo de clock aqui */
+
+
+    //Tratamento de interrupções
+    ftStruct->InterruptHandler = InterruptHandler;
+
+    //limpa dados de interrupções
+    ftStruct->InterruptMaskHigh = 0x00;
+    ftStruct->InterruptMaskLow = 0x00;
+    ftStruct->InterruptValueHigh = 0x00;
+    ftStruct->InterruptValueLow = 0x00;
+    ftStruct->InterruptTypeHigh = 0x00;
+    ftStruct->InterruptTypeLow = 0x00;
+
+    //desabilita interrupções
+    ftStruct->EnableInterrupts = 0x00;
 
     switch (ckMode)
     {
@@ -586,12 +602,12 @@ void FT2232SPI_SetHighBitsDirection(FT2232SPI * data, unsigned char direction)
 
 }
 
-void FT2232_CYCLE(FT2232SPI * data)
+void FT2232SPI_CYCLE(FT2232SPI * data)
 {
     unsigned char HighPinsState = 0x00, LowPinsState = 0x00;
     int i = 0;
 
-    if (!data) return;
+    if ((!data) || (data->OP_MODE != FT2232SPI_OPMODE_CYCLE)) return;
 
     //armazena ultimo valor dos pinos
 
@@ -622,14 +638,16 @@ void FT2232_CYCLE(FT2232SPI * data)
                         if (data->InterruptValueHigh & (1<<i)) //a interrupção é do tipo nível alto
                         {
 
-                            if (data->BUS_VAL_HIGH & (1<<i)) /**TRATAMENTO AQUI**/;//ocorreu interrupção
+                            if (data->BUS_VAL_HIGH & (1<<i))
+                              (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_HIGH, (1<<(i+8)));//ocorreu interrupção
 
 
                         }
                         else //a interrupção é do tipo nível baixo
                         {
 
-                            if (!(data->BUS_VAL_HIGH & (1<<i))) /**TRATAMENTO AQUI**/; //ocorreu interrupção
+                            if (!(data->BUS_VAL_HIGH & (1<<i)))
+                              (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_LOW,(1<<(i+8))); //ocorreu interrupção
 
                         }
 
@@ -641,14 +659,16 @@ void FT2232_CYCLE(FT2232SPI * data)
                         if (data->InterruptValueHigh & (1<<i)) //a interrupção é tipo borda de subida
                         {
 
-                            if (!(HighPinsState & (1<<i)) && (data->BUS_VAL_HIGH & (1<<i))) /**TRATAMENTO AQUI**/; //ocorreu interrupção
+                            if (!(HighPinsState & (1<<i)) && (data->BUS_VAL_HIGH & (1<<i)))
+                              (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_RISE,(1<<(i+8))); //ocorreu interrupção
 
 
                         }
                         else //a interrupção é tipo borda de descida
                         {
 
-                            if ((HighPinsState & (1<<i)) && !(data->BUS_VAL_HIGH & (1<<i))) /**TRATAMENTO AQUI**/; //ocorreu interrupção
+                            if ((HighPinsState & (1<<i)) && !(data->BUS_VAL_HIGH & (1<<i)))
+                              (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_FALL,(1<<(i+8))); //ocorreu interrupção
 
                         }
 
@@ -663,13 +683,83 @@ void FT2232_CYCLE(FT2232SPI * data)
         if (data->InterruptMaskLow)
         {
 
+          //mesma coisa!
+          for (i=0;i < 8; i++)
+          {
+
+              if ((data->InterruptMaskLow & (1<<i)) && !(data->BUS_DIR_LOW & (1<<i))) //este bit está com interrupção habilitada e é uma entrada
+              {
+
+                  if (data->InterruptTypeLow & (1<<i)) //a interrupção é do tipo nível
+                  {
+
+                      if (data->InterruptValueLow & (1<<i)) //a interrupção é do tipo nível alto
+                      {
+
+                          if (data->BUS_VAL_LOW & (1<<i))
+                            (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_HIGH, (1<<i));//ocorreu interrupção
 
 
+                      }
+                      else //a interrupção é do tipo nível baixo
+                      {
 
+                          if (!(data->BUS_VAL_LOW & (1<<i)))
+                            (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_LOW,(1<<i)); //ocorreu interrupção
+
+                      }
+
+
+                  }
+                  else //a interrupção é do tipo borda
+                  {
+
+                      if (data->InterruptValueLow & (1<<i)) //a interrupção é tipo borda de subida
+                      {
+
+                          if (!(LowPinsState & (1<<i)) && (data->BUS_VAL_LOW & (1<<i)))
+                            (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_RISE,(1<<i)); //ocorreu interrupção
+
+
+                      }
+                      else //a interrupção é tipo borda de descida
+                      {
+
+                          if ((LowPinsState & (1<<i)) && !(data->BUS_VAL_LOW & (1<<i)))
+                            (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_FALL,(1<<i)); //ocorreu interrupção
+
+                      }
+
+                  }
+
+              }
+
+          }
 
         }
 
     }
 
+}
+
+//habilita interrupções
+void FT2232SPI_EnableInterrupts(FT2232SPI * data)
+{
+
+  if (!data) return;
+
+  //verifica se a função de tratamento de interrupções é valida e habilita as interrupções
+  if (!data->InterruptHandler) data->EnableInterrupts = 0x00;
+  else data->EnableInterrupts = 0x01;
+
+
+}
+void FT2232SPI_DisableInterrupts(FT2232SPI * data)
+{
+
+  if (!data) return;
+
+  //desabilita interrupções
+  data->EnableInterrupts = 0x00;
 
 }

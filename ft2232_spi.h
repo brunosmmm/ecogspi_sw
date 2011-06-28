@@ -94,6 +94,12 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #define FT2232SPI_RW_ASSERTHOLDCS  0x03 //baixa cs antes da escrita e não levanta no final
 #define FT2232SPI_RW_NONE          0x00 //não baixa cs antes da escrita, mas levanta no final
 
+//tipos de interrupção
+#define FT2232SPI_INT_LEVEL_HIGH 0x01
+#define FT2232SPI_INT_LEVEL_LOW  0x02
+#define FT2232SPI_INT_EDGE_RISE  0x03
+#define FT2232SPI_INT_EDGE_FALL  0x04
+
 //etc
 #ifndef TRUE
 #define TRUE 0x01
@@ -159,8 +165,11 @@ typedef struct FT2232SPIDATA
     unsigned char InterruptTypeHigh;
     unsigned char InterruptTypeLow;
 
-    //handler de interrupção
-    void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char);
+    //handler de interrupção:
+    //param1 = struct FT2232SPIDATA que disparou o tratamento
+    //param2 = tipo de interrupção
+    //param3 = causador da interrupção (16 bits, representa High (MSB) e Low (LSB) concatenados)
+    void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short);
     //struct da libftdi
     struct ftdi_context ftdicContext;
 
@@ -173,13 +182,14 @@ typedef struct FT2232SPIDATA
 } FT2232SPI;
 
 //aloca espaço para uma nova estrutura FT2232SPI e inicializa
-FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned char ckMode, unsigned char ckDiv5, unsigned short ckDiv);
+FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned char ckMode, unsigned char ckDiv5, unsigned short ckDiv,
+                            void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short));
 //libera memória ocupada por uma estrutura FT2232SPI
 void FT2232SPI_FREE(FT2232SPI * data);
 
 int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsigned int INTERFACE); //inicialização do hardware
 
-void FT2232_CYCLE(FT2232SPI * data); //ciclo de excecução
+void FT2232SPI_CYCLE(FT2232SPI * data); //ciclo de excecução
 
 //habilita CS
 void FT2232SPI_EnableCS(FT2232SPI * data);
@@ -207,8 +217,8 @@ void FT2232SPI_SetHighBitsDirection(FT2232SPI * data, unsigned char direction);
 int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int readcnt,
                            const unsigned char *writearr, unsigned char *readarr, unsigned char CSControl); //holdCS = 1 não desativa CS ao final da transmissão
 
-void FT2232SPI_EnableInterrupts(void);
-void FT2232SPI_DisableInterrupts(void);
+void FT2232SPI_EnableInterrupts(FT2232SPI * data);
+void FT2232SPI_DisableInterrupts(FT2232SPI * data);
 
 void FT2232SPI_SetCKMode(FT2232SPI * data, unsigned char CKMode); //seta modo do clock
 

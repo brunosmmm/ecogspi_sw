@@ -52,15 +52,16 @@
 1305839978 source:/home/bruno/Dropbox/Devel/EcoG_SPI/SRC/EcoG_SPI/pga280.c
 	"pga280.h"
 
-1307499093 source:/home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/ecog_spi.c
+1309220283 source:/home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/ecog_spi.c
 	"ecog_spi.h"
+	<pthread.h>
 
-1306116611 /home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/ecog_spi.h
+1309218543 /home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/ecog_spi.h
 	"ft2232_spi.h"
 	"pga280.h"
 	"ads1259.h"
 
-1307497694 /home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/ft2232_spi.h
+1309220094 /home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/ft2232_spi.h
 	<stdio.h>
 	<string.h>
 	<stdlib.h>
@@ -75,7 +76,7 @@
 1307497694 source:/home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/ft2232_spi.c
 	"ft2232_spi.h"
 
-1307499370 source:/home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/main.c
+1307499614 source:/home/bruno/Dropbox/Devel/Laboratório/EcoG_SPI/SRC/EcoG_SPI/main.c
 	<stdio.h>
 	<stdlib.h>
 	"ft2232_spi.h"
