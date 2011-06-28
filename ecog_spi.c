@@ -65,7 +65,7 @@ void ECOGSPI_StopHandling(void)
 }
 
 static void * ECOGSPI_CycleHandler(void * arg)
-{
+    {
 
   pthread_mutex_t mutex_handler = PTHREAD_MUTEX_INITIALIZER;
 
@@ -101,7 +101,7 @@ static void * ECOGSPI_CycleHandler(void * arg)
 
   return NULL;
 
-}
+    }
 
 
 //ciclo da interface ECOGSPI

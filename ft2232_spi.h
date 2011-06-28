@@ -118,11 +118,11 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 //declaração retirada de programmer.h @477 (modificado)
 struct usbdev_status
 {
-    uint16_t vendor_id;
-    uint16_t device_id;
-    int status;
-    const char *vendor_name;
-    const char *device_name;
+  uint16_t vendor_id;
+  uint16_t device_id;
+  int status;
+  const char *vendor_name;
+  const char *device_name;
 };
 
 //flash.h
@@ -134,56 +134,56 @@ int max(int a, int b);
 typedef struct FT2232SPIDATA
 {
 
-    unsigned char OP_MODE; //modo de operação
+  unsigned char OP_MODE; //modo de operação
 
-    unsigned char BUS_VAL_LOW; //estado dos pinos baixos (ADBUS0-7)
-    unsigned char BUS_VAL_HIGH; //estado dos pinos altos (ACBUS0-7)
-    unsigned char BUS_DIR_LOW; //direção dos pinos baixos (ADBUS0-7)
-    unsigned char BUS_DIR_HIGH; //direção dos pinos altos (ACBUS0-7)
+  unsigned char BUS_VAL_LOW; //estado dos pinos baixos (ADBUS0-7)
+  unsigned char BUS_VAL_HIGH; //estado dos pinos altos (ACBUS0-7)
+  unsigned char BUS_DIR_LOW; //direção dos pinos baixos (ADBUS0-7)
+  unsigned char BUS_DIR_HIGH; //direção dos pinos altos (ACBUS0-7)
 
-    unsigned char FT2232_FLAGS; //flags do FT2232H
+  unsigned char FT2232_FLAGS; //flags do FT2232H
 
-    unsigned char CKDIV_LOW; //divisor de clock, byte baixo
-    unsigned char CKDIV_HIGH; //divisor de clock, byte alto
+  unsigned char CKDIV_LOW; //divisor de clock, byte baixo
+  unsigned char CKDIV_HIGH; //divisor de clock, byte alto
 
-    //configuração em alto nível
-    unsigned char CK_MODE; //modo do clock -> dados gravados na subida/descida
-    unsigned char CS_MODE; //modo do cs -> ativo alto/baixo
+  //configuração em alto nível
+  unsigned char CK_MODE; //modo do clock -> dados gravados na subida/descida
+  unsigned char CS_MODE; //modo do cs -> ativo alto/baixo
 
-    //habilita interrupções por software no modo cíclico
-    unsigned char EnableInterrupts;
+  //habilita interrupções por software no modo cíclico
+  unsigned char EnableInterrupts;
 
-    //mascaramento de "interrupções" em ACBUS0-7  e ADBUS0-7, respectivamente
-    unsigned char InterruptMaskHigh;
-    unsigned char InterruptMaskLow;
+  //mascaramento de "interrupções" em ACBUS0-7  e ADBUS0-7, respectivamente
+  unsigned char InterruptMaskHigh;
+  unsigned char InterruptMaskLow;
 
-    //valor de interrupção -> 0 ou 1
-    unsigned char InterruptValueHigh;
-    unsigned char InterruptValueLow;
+  //valor de interrupção -> 0 ou 1
+  unsigned char InterruptValueHigh;
+  unsigned char InterruptValueLow;
 
-    //tipo de interrupção: borda (0) ou nível (1)
-    unsigned char InterruptTypeHigh;
-    unsigned char InterruptTypeLow;
+  //tipo de interrupção: borda (0) ou nível (1)
+  unsigned char InterruptTypeHigh;
+  unsigned char InterruptTypeLow;
 
-    //handler de interrupção:
-    //param1 = struct FT2232SPIDATA que disparou o tratamento
-    //param2 = tipo de interrupção
-    //param3 = causador da interrupção (16 bits, representa High (MSB) e Low (LSB) concatenados)
-    void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short);
-    //struct da libftdi
-    struct ftdi_context ftdicContext;
+  //handler de interrupção:
+  //param1 = struct FT2232SPIDATA que disparou o tratamento
+  //param2 = tipo de interrupção
+  //param3 = causador da interrupção (16 bits, representa High (MSB) e Low (LSB) concatenados)
+  void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short);
+  //struct da libftdi
+  struct ftdi_context ftdicContext;
 
-    //comando de envio, depende de CPHA
-    unsigned char SEND_MODE;
+  //comando de envio, depende de CPHA
+  unsigned char SEND_MODE;
 
-    //modo de leitura (Sample na subida ou descida do clock)
-    unsigned char READ_MODE;
+  //modo de leitura (Sample na subida ou descida do clock)
+  unsigned char READ_MODE;
 
 } FT2232SPI;
 
 //aloca espaço para uma nova estrutura FT2232SPI e inicializa
 FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned char ckMode, unsigned char ckDiv5, unsigned short ckDiv,
-                            void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short));
+    void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short));
 //libera memória ocupada por uma estrutura FT2232SPI
 void FT2232SPI_FREE(FT2232SPI * data);
 
@@ -215,7 +215,7 @@ void FT2232SPI_SetHighBitsDirection(FT2232SPI * data, unsigned char direction);
 
 //envia e recebe dados
 int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int readcnt,
-                           const unsigned char *writearr, unsigned char *readarr, unsigned char CSControl); //holdCS = 1 não desativa CS ao final da transmissão
+    const unsigned char *writearr, unsigned char *readarr, unsigned char CSControl); //holdCS = 1 não desativa CS ao final da transmissão
 
 void FT2232SPI_EnableInterrupts(FT2232SPI * data);
 void FT2232SPI_DisableInterrupts(FT2232SPI * data);

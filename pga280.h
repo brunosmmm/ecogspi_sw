@@ -16,11 +16,11 @@ typedef unsigned char BOOL;
 
 //constantes
 #ifndef TRUE
-    #define TRUE 0x01
+#define TRUE 0x01
 #endif
 
 #ifndef FALSE
-    #define FALSE 0x00
+#define FALSE 0x00
 #endif
 
 //interface SPI com o PGA280
@@ -61,11 +61,11 @@ typedef unsigned char BOOL;
 
 typedef struct PGA280DATA {
 
-	unsigned char REG_DATA[13]; //dados nos registradores do PGA280
+  unsigned char REG_DATA[13]; //dados nos registradores do PGA280
 
-	unsigned short DIRTY_FLAGS; //flaga os bits como "sujos", serão escritos na próxima escrita geral
+  unsigned short DIRTY_FLAGS; //flaga os bits como "sujos", serão escritos na próxima escrita geral
 
-	void (*ReadWriteData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura/escrita
+  void (*ReadWriteData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura/escrita
 
 } PGA280;
 
@@ -118,7 +118,7 @@ void PGA280_ControlMux(PGA280 * data, unsigned char select); //controla multiple
 
 //utiliza o esquema ECS (Extended Chip Select) para selecionar outros escravos SPI e enviar/receber dados
 void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen,
-                                unsigned char * recvbuf, unsigned char recvlen, unsigned char ecs);
+    unsigned char * recvbuf, unsigned char recvlen, unsigned char ecs);
 
 
 

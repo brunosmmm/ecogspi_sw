@@ -33,11 +33,11 @@
 typedef struct ADS1259DATA
 {
 
-    unsigned char REG_DATA[9]; //registradores internos do ADS1259
+  unsigned char REG_DATA[9]; //registradores internos do ADS1259
 
-    unsigned short DIRTY_FLAGS; //flags de escrita
+  unsigned short DIRTY_FLAGS; //flags de escrita
 
-    void (*ReadWriteData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura/escrita
+  void (*ReadWriteData)(unsigned char *, unsigned char, unsigned char *, unsigned char); //ponteiro para função de leitura/escrita
 
 } ADS1259;
 
