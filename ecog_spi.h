@@ -9,9 +9,8 @@
 //Pinos LOW
 #define ECOGSPI_PIN_START 0x10
 #define ECOGSPI_PIN_ADRST 0x40
-#define ECOGSPI_PIN_DRDY 0x20
+#define ECOGSPI_PIN_DRDY  0x20
 #define ECOGSPI_PIN_UCRST 0x80
-
 
 
 #include "ft2232_spi.h"

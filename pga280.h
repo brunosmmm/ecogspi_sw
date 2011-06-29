@@ -119,6 +119,10 @@ void PGA280_ControlMux(PGA280 * data, unsigned char select); //controla multiple
 //utiliza o esquema ECS (Extended Chip Select) para selecionar outros escravos SPI e enviar/receber dados
 void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned char buflen,
     unsigned char * recvbuf, unsigned char recvlen, unsigned char ecs);
+    
+void PGA280_EnableSyncIn(PGA280 * data); //habilita função sync in
+
+void PGA280_DisableSyncIn(PGA280 * data); //desabilita função sync in
 
 
 

@@ -33,7 +33,9 @@ int ECOGSPI_Init(void)
   initStatus += FT2232SPI_HWINIT(EcoGSPIData.ft2232spi,FTDI_VID,FTDI_FT2232H_PID,INTERFACE_A);
 
   //direção dos pinos do FT2232H
-  FT2232SPI_SetLowBitsDirection(EcoGSPIData.ft2232spi, 0xD0);
+  //saída: ADRST, UCRST, START
+  //entrada: DRDY
+  FT2232SPI_SetLowBitsDirection(EcoGSPIData.ft2232spi, FT2232_PIN_ADRST | FT2232_PIN_UCRST | FT2232_PIN_START);
 
   //inicialização PGA280
   EcoGSPIData.pga280 = PGA280_INIT(FT2232_PGA280_ReadWriteData);
@@ -43,6 +45,49 @@ int ECOGSPI_Init(void)
 
   return initStatus;
 }
+
+//configura o hardware do ECOGSPI
+int ECOGSPI_HwConfig(void)
+{
+  
+  //configura PGA280
+
+  PGA280_WriteGPIOState(EcoGSPIData.pga280,0x01); //GPIO0 alto
+
+  PGA280_WriteGPIODirection(EcoGSPIData.pga280,0x01); //GPIO0 como saída
+
+  PGA280_SetECSMode(EcoGSPIData.pga280,0x01); //GPIO0 em modo ECS
+  
+  //levanta ADRST, iniciando operação do ADC
+  
+  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, FT2232SPI_PIN_ADRST); 
+  
+  //espera para garantir que o ADC esteja pronto
+  usleep(10000);
+  
+  //configuração ADS1259
+  
+  //comando SDATAC - é necessário para sair do modo RDATAC
+
+  ADS1259_StopContinuous(EcoGSPIData.ads1259);
+
+  //habilita syncout
+
+  ADS1259_EnableSyncOut(EcoGSPIData.ads1259);
+  
+  //configura pga para utilizar syncin
+
+  PGA280_EnableSyncIn(EcoGSPIData.pga280);
+  
+  //configura interrupções no FT2232SPI
+  //interrupção configurada: pino !DRDY -> borda de descida
+  FT2232SPI_ConfigInterruptsLow(EcoGSPIData.ft2232spi,FT2232SPI_PIN_DRDY,0x00,0x00);
+  
+  //coloca o ADS1259 no modo RDATAC
+  ADS1259_StartContinuous(EcoGSPIData.ads1259);
+  
+}
+  
 
 int ECOGSPI_StartHandling(void)
 {
@@ -69,8 +114,13 @@ static void * ECOGSPI_CycleHandler(void * arg)
 
   pthread_mutex_t mutex_handler = PTHREAD_MUTEX_INITIALIZER;
 
+  //inicialização
+
   //habilita interrupções do ft2232spi
   FT2232SPI_EnableInterrupts(EcoGSPIData.ft2232spi);
+  
+  //inicia conversões A/D
+  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, FT2232SPI_PIN_ADRST | FT2232SPI_PIN_START);
 
   //rodando
   InternalData.cycleHandlerRunning = 1;
@@ -93,6 +143,9 @@ static void * ECOGSPI_CycleHandler(void * arg)
 
   //desabilita interrupções do ft2232spi
   FT2232SPI_DisableInterrupts(EcoGSPIData.ft2232spi);
+  
+  //para conversões A/D
+  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, FT2232SPI_PIN_ADRST);
 
   //finaliza
   InternalData.cycleHandlerRunning = 0;
@@ -140,6 +193,7 @@ static void FT2232_ADS1259_WriteReadData(unsigned char * writeBuf, unsigned char
 static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptType, unsigned short InterruptPin)
 {
 
+  //atenção: usar mutexes em todas as variáveis compartilhadas
 
 
 }

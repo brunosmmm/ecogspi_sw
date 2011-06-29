@@ -188,12 +188,47 @@ void ADS1259_StopContinuous(ADS1259 * data)
 
 }
 
+void ADS1259_StopContinuous(ADS1259 * data)
+{
+
+  unsigned char sendbuf = ADS1259_CMD_SDATAC;
+
+  if (!data) return;
+
+  (data->ReadWriteData)(&sendbuf,1,NULL,0);
+
+}
+
+void ADS1259_StartContinuous(ADS1259 * data)
+{
+
+  unsigned char sendbuf = ADS1259_CMD_RDATAC;
+
+  if (!data) return;
+
+  (data->ReadWriteData)(&sendbuf,1,NULL,0);
+
+}
+
 void ADS1259_EnableSyncOut(ADS1259 * data)
 {
 
   if (!data) return;
 
   data->REG_DATA[2] |= 0x20;
+
+  data->DIRTY_FLAGS |= (1<<2);
+
+  ADS1259_SelectiveUpdate(data);
+
+}
+
+void ADS1259_DisableSyncOut(ADS1259 * data)
+{
+
+  if (!data) return;
+
+  data->REG_DATA[2] &= ~0x20;
 
   data->DIRTY_FLAGS |= (1<<2);
 

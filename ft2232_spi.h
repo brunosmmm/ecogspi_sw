@@ -100,6 +100,13 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #define FT2232SPI_INT_EDGE_RISE  0x03
 #define FT2232SPI_INT_EDGE_FALL  0x04
 
+//status do FT2232SPI
+#define FT2232SPI_OP_OK    0x00 //operação ok (inativo)
+#define FT2232SPI_OP_STOP  0x01 //parado
+#define FT2232SPI_OP_CYCLE 0x02 //executando ciclo
+#define FT2232SPI_OP_XFER  0x04 //transferindo dados
+#define FT2232SPI_OP_INT   0x08 //tratando interrupção
+
 //etc
 #ifndef TRUE
 #define TRUE 0x01
@@ -114,6 +121,9 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #define FTDI_FT4232H_PID	0x6011
 
 #define BITMODE_BITBANG_SPI	2
+
+//tamanho do buffer interno de dados
+//#define FT2232SPI_BUF_SIZE 65536
 
 //declaração retirada de programmer.h @477 (modificado)
 struct usbdev_status
@@ -133,6 +143,9 @@ int max(int a, int b);
 //armazena estado e configurações da interface SPI no FT2232H
 typedef struct FT2232SPIDATA
 {
+
+//  unsigned char OUT_BUF[FT2232SPI_BUF_SIZE]; //buffer de saída
+//  unsigned char IN_BUF[FT2232SPI_BUF_SIZE]; //buffer de entrada
 
   unsigned char OP_MODE; //modo de operação
 
@@ -178,6 +191,9 @@ typedef struct FT2232SPIDATA
 
   //modo de leitura (Sample na subida ou descida do clock)
   unsigned char READ_MODE;
+  
+  //status de operação
+  unsigned char OP_STATUS;
 
 } FT2232SPI;
 
@@ -222,5 +238,10 @@ void FT2232SPI_DisableInterrupts(FT2232SPI * data);
 
 void FT2232SPI_SetCKMode(FT2232SPI * data, unsigned char CKMode); //seta modo do clock
 
+void FT2232SPI_ConfigInterruptsLow(FT2232SPI * data, unsigned char interruptMask, unsigned char interruptValues,
+                                    unsigned char interruptTypes); //configura interrupções de pinos baixos
+                                    
+void FT2232SPI_ConfigInterruptsHigh(FT2232SPI * data, unsigned char interruptMask, unsigned char interruptValues,
+                                    unsigned char interruptTypes); //configura interrupções de pinos altos
 
 #endif // FT2232_SPI_H_INCLUDED

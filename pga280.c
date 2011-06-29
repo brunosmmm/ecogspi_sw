@@ -399,3 +399,29 @@ void PGA280_ECS_ReadWriteData(PGA280 * data, unsigned char * sendbuf, unsigned c
   (data->ReadWriteData)(sendData,buflen+1,recvbuf,recvlen);
 
 }
+
+void PGA280_EnableSyncIn(PGA280 * data)
+{
+  if (!data) return;
+  
+  data->REG_DATA[12] |= 0x40;
+  
+  //update
+  data->DIRTY_FLAGS |= (1<<12);
+  
+  PGA280_Update(data);
+
+}
+
+void PGA280_DisableSyncIn(PGA280 * data)
+{
+  if (!data) return;
+  
+  data->REG_DATA[12] &= ~0x40;
+  
+  //update
+  data->DIRTY_FLAGS |= (1<<12);
+  
+  PGA280_Update(data);
+
+}

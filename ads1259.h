@@ -55,7 +55,9 @@ void ADS1259_ReadMultiRegister(ADS1259 * data, unsigned char RegStartNum, unsign
 
 void ADS1259_Reset(ADS1259 * data);
 void ADS1259_StopContinuous(ADS1259 * data);
+void ADS1259_StartContinuous(ADS1259 * data);
 
 void ADS1259_EnableSyncOut(ADS1259 * data);
+void ADS1259_DisableSyncOut(ADS1259 * data);
 
 #endif // ADS1259_H_INCLUDED

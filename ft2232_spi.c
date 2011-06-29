@@ -116,6 +116,20 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
   int i = 0, ret = 0, failed = 0;
   int bufsize;
   static int oldbufsize = 0;
+  
+  
+  if (!data) return -1;
+    
+  //parado, retorna
+  if (data->OP_STATUS == FT2232SPI_OP_STOP) return -1
+
+  //espera término do ciclo para enviar dados
+  //atenção: se o estado é OP_INT, realiza transferência normalmente.
+  while (data->OP_STATUS == FT2232SPI_OP_CYCLE) ;  
+    
+  //indica que está transferindo dados
+  data->OP_STATUS = FT2232SPI_OP_XFER;
+      
 
   //não é possível escrever ou ler mais de 65536 bytes por vez.
 
@@ -217,6 +231,10 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
 
   ret = send_buf(ftdic, buf, i);
   failed |= ret;
+  
+  
+  //transferência finalizada
+  data->OP_STATUS = FT2232SPI_OP_OK;
 
   return failed ? -1 : 0;
 }
@@ -324,6 +342,9 @@ FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned 
   ftStruct->CKDIV_LOW = (ckDiv - 1) & 0xff;
   ftStruct->CKDIV_HIGH = ((ckDiv - 1) >> 8) & 0xff;
 
+
+  //estrutura de dados inicializada, porém operação neste ponto: parado
+  ftStruct->OP_STATUS = FT2232SPI_OP_STOP;
 
   return ftStruct;
 
@@ -443,6 +464,10 @@ int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsig
   buf[2] = data->BUS_DIR_LOW; //0x0b -> SCK/MOSI/CS são saídas, MISO é entrada por padrão.
   if (send_buf(&data->ftdicContext, buf, 3)) //envia
     return FT2232SPI_HWERROR;
+    
+    
+  //hardware inicializado corretamente: operação -> OK
+  data->OP_STATUS = FT2232SPI_OP_OK;
 
 
   return 0; //sucesso
@@ -607,7 +632,16 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
   unsigned char HighPinsState = 0x00, LowPinsState = 0x00;
   int i = 0;
 
-  if ((!data) || (data->OP_MODE != FT2232SPI_OPMODE_CYCLE)) return;
+  if (!data) return;
+
+  //verifica se o modo de operação é o correto
+  if (data->OP_MODE != FT2232SPI_OPMODE_CYCLE) return;
+  
+  //se está parado ou transmitindo dados, não executa o ciclo
+  if (data->OP_STATUS != FT2232SPI_OP_OK) return;
+  
+  //operação -> ciclo
+  data->OP_STATUS = FT2232SPI_OP_CYCLE;
 
   //armazena ultimo valor dos pinos
 
@@ -639,16 +673,26 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
               {
 
               if (data->BUS_VAL_HIGH & (1<<i))
+                {
+                
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_HIGH, (1<<(i+8)));//ocorreu interrupção
-
+                
+                }
 
               }
             else //a interrupção é do tipo nível baixo
               {
 
-              if (!(data->BUS_VAL_HIGH & (1<<i)))
+              if (!(data->BUS_VAL_HIGH & (1<<i))) 
+                
+                {
+                
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_LOW,(1<<(i+8))); //ocorreu interrupção
 
+                }
+              
               }
 
 
@@ -660,15 +704,26 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
               {
 
               if (!(HighPinsState & (1<<i)) && (data->BUS_VAL_HIGH & (1<<i)))
+              
+                {
+                
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_RISE,(1<<(i+8))); //ocorreu interrupção
-
+                
+                }
 
               }
             else //a interrupção é tipo borda de descida
               {
 
               if ((HighPinsState & (1<<i)) && !(data->BUS_VAL_HIGH & (1<<i)))
+              
+                {
+                
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_FALL,(1<<(i+8))); //ocorreu interrupção
+                
+                }
 
               }
 
@@ -697,7 +752,12 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
               {
 
               if (data->BUS_VAL_LOW & (1<<i))
+                {
+                
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_HIGH, (1<<i));//ocorreu interrupção
+                
+                }
 
 
               }
@@ -705,7 +765,14 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
               {
 
               if (!(data->BUS_VAL_LOW & (1<<i)))
+              
+                {
+                
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_LEVEL_LOW,(1<<i)); //ocorreu interrupção
+                
+                }
+                
 
               }
 
@@ -718,7 +785,13 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
               {
 
               if (!(LowPinsState & (1<<i)) && (data->BUS_VAL_LOW & (1<<i)))
+              
+                {
+                    
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_RISE,(1<<i)); //ocorreu interrupção
+                
+                }
 
 
               }
@@ -726,7 +799,13 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
               {
 
               if ((LowPinsState & (1<<i)) && !(data->BUS_VAL_LOW & (1<<i)))
+              
+                {
+                
+                data->OP_STATUS = FT2232SPI_OP_INT;
                 (data->InterruptHandler)(data,FT2232SPI_INT_EDGE_FALL,(1<<i)); //ocorreu interrupção
+                
+                }
 
               }
 
@@ -739,6 +818,9 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
       }
 
     }
+    
+  //fim do ciclo
+  data->OP_STATUS = FT2232SPI_OP_OK;
 
 }
 
@@ -754,6 +836,8 @@ void FT2232SPI_EnableInterrupts(FT2232SPI * data)
 
 
 }
+
+//desabilita interrupções
 void FT2232SPI_DisableInterrupts(FT2232SPI * data)
 {
 
@@ -762,4 +846,29 @@ void FT2232SPI_DisableInterrupts(FT2232SPI * data)
   //desabilita interrupções
   data->EnableInterrupts = 0x00;
 
+}
+
+//configura interrupções
+void FT2232SPI_ConfigInterruptsLow(FT2232SPI * data, unsigned char interruptMask, unsigned char interruptValues,
+                                    unsigned char interruptTypes)
+{
+  
+  if (!data) return;
+  
+  data->interruptMaskLow = interruptMask;
+  data->interruptValueLow = interruptValues;
+  data->interruptTypeLow = interruptTypes;
+  
+}
+
+void FT2232SPI_ConfigInterruptsHigh(FT2232SPI * data, unsigned char interruptMask, unsigned char interruptValues,
+                                    unsigned char interruptTypes)
+{
+  
+  if (!data) return;
+  
+  data->interruptMaskHigh = interruptMask;
+  data->interruptValueHigh = interruptValues;
+  data->interruptTypeHigh = interruptTypes;
+  
 }
