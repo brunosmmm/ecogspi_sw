@@ -1,106 +1,82 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <pthread.h>
 
-#include "ft2232_spi.h"
 #include "ecog_spi.h"
 
-unsigned char PGA_REGISTER_VALUES[13];
-
-unsigned char buf[10];
-
-int i = 0;
+#define SAMPLE_RATE 60
 
 extern ECOGSPI EcoGSPIData;
 
+void ex_program(int sig);
+
 int main()
 {
+  pthread_mutex_t mutex_main = PTHREAD_MUTEX_INITIALIZER;
 
-  ECOGSPI_Init();
+  int dataCount = 0;
+  int dataAvailable = 0;
 
-  //leitura inicial completa
+  int i = 0;
 
-  //leitura inicial utilizando biblioteca PGA280
-  PGA280_Update(EcoGSPIData.pga280);
+  int sampleBuf[SAMPLE_RATE];
 
-  printf("valores dos registradores do PGA280\n");
+  //pega sinal de término
+  (void) signal(SIGINT, ex_program);
 
-  for (i = 0; i < 13; i++) printf("valor r%d: 0x%x\n",i,PGA280_GetData(EcoGSPIData.pga280,i));
+  //inicializa estruturas de dados
+  ECOGSPI_Init(0);
 
-  //configura PGA280
+  //inicializa hardware
+  ECOGSPI_HwConfig();
 
-  PGA280_WriteGPIOState(EcoGSPIData.pga280,0x01);
+  //inicia ciclos de execução
+  ECOGSPI_StartHandling();
 
-  PGA280_WriteGPIODirection(EcoGSPIData.pga280,0x01);
+  //mutex para garantir sincronia
+  while (dataCount < SAMPLE_RATE)
+    {
 
-  PGA280_SetECSMode(EcoGSPIData.pga280,0x01);
+  pthread_mutex_lock(&mutex_main);
+  if (EcoGSPIData.dataAvailable > dataAvailable)
+    {
 
-  //FT2232SPI_SendRecvData(ft2232Data,2,0,PGA_CONF_ECS,NULL,FT2232SPI_RW_ASSERTCS); //seta GPIO0 como ECS
+    //printf("data disp = %d bytes\n",EcoGSPIData.dataAvailable);
 
-  //seleciona canal 1
+    if (EcoGSPIData.dataAvailable - dataAvailable == 3) dataCount++;
 
-  PGA280_SelectChannel(EcoGSPIData.pga280,PGA280_CHAN_1);
+    dataAvailable = EcoGSPIData.dataAvailable;
 
-  //seta ganho
+    }
 
-  PGA280_SetGain(EcoGSPIData.pga280,PGA280_GAIN_64);
+  pthread_mutex_unlock(&mutex_main);
 
-  //PGA280_EnableGainMultiplier(EcoGSPIData.pga280);
+    }
 
-  //tenta resetar o conversor A/D
-  //FT2232SPI_SetLowBitsState(ft2232Data, 0x00);
-  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, 0x40); //levanta ADRST, iniciando operação do A/D
+  printf("Parando threads...\n");
+  ECOGSPI_StopHandling();
 
-  //é preciso aguardar algum tempo após o reset do ADS1259 para iniciar as operações com ele
+  //forma amostras
+  for (i = 0;i < SAMPLE_RATE; i++)
+    {
 
-  usleep(10000);
+    sampleBuf[i] = (EcoGSPIData.inBuf[3*i] << 24) | (EcoGSPIData.inBuf[3*i+1] << 16) | (EcoGSPIData.inBuf[3*i+2] << 8);
 
-  //comando SDATAC - é necessário para sair do modo RDATAC
+    //printf("sample %d = %d\n",i,sampleBuf[i]);
+    printf("%f,%f\n",(float)i/(float)SAMPLE_RATE,((float)(sampleBuf[i])/(float)(ADS1259_VAL_MAX)));
 
-  ADS1259_StopContinuous(EcoGSPIData.ads1259);
-
-  //habilita syncout
-
-  ADS1259_EnableSyncOut(EcoGSPIData.ads1259);
-
-  //lê os registradores do ADS1259
-
-  ADS1259_FullUpdate(EcoGSPIData.ads1259);
-
-  //FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi,2,0,PGA_ECS_ADS_SDATAC,NULL,FT2232SPI_RW_ASSERTCS);
-
-  //FT2232SPI_SendRecvData(EcoGSPIData.ft2232spi,3,9,PGA_ECS_ADS_READ_0,buf,FT2232SPI_RW_ASSERTCS);
-
-  //configura pga para utilizar syncin
-
-  //PGA280_WriteRegister(EcoGSPIData.pga280,0x0C,0x40);
-
-  printf("registradores do ADS1259\n");
-
-  for (i = 0; i < 9; i++) printf("valor de r%d : 0x%x\n",i, ADS1259_GetData(EcoGSPIData.ads1259,i));
-
-  /*FT2232SPI_SendRecvData(ft2232Data,2,0,PGA_ECS_ADS_SDATAC,NULL,FT2232SPI_RW_ASSERTCS);
-
-
-    //habilita syncout
-    FT2232SPI_SendRecvData(ft2232Data,4,0,PGA_ECS_ADS_SYNCOUT,NULL,FT2232SPI_RW_ASSERTCS);
-
-
-    //configuração do PGA280 pós-config ADS1259
-
-    FT2232SPI_SendRecvData(ft2232Data,2,0,PGA_CONF_SYNC,NULL,FT2232SPI_RW_ASSERTCS); //configura oscilador para utilizar SYNCOUT do ADS125
-
-    //ok, this is a mess but at least we can do something interessant now!
-
-    //lê os registradores do ADS1259
-    FT2232SPI_SendRecvData(ft2232Data,3,9,PGA_ECS_ADS_READ_0,buf,FT2232SPI_RW_ASSERTCS);
-
-    printf("valores dos registradores do ADS1259\n");
-
-    int i;
-    for (i = 0; i < 9; i++)
-        printf("valor de r%d: 0x%x\n",i,buf[i]);*/
+    }
 
 
   printf("FIM\n");
   return 0;
+}
+
+void ex_program(int sig) {
+ printf("Parando threads e saindo...\n");
+
+ ECOGSPI_StopHandling();
+
+ exit(0);
 }

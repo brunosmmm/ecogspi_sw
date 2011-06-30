@@ -121,7 +121,7 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
   if (!data) return -1;
     
   //parado, retorna
-  if (data->OP_STATUS == FT2232SPI_OP_STOP) return -1
+  if (data->OP_STATUS == FT2232SPI_OP_STOP) return -1;
 
   //espera término do ciclo para enviar dados
   //atenção: se o estado é OP_INT, realiza transferência normalmente.
@@ -855,9 +855,9 @@ void FT2232SPI_ConfigInterruptsLow(FT2232SPI * data, unsigned char interruptMask
   
   if (!data) return;
   
-  data->interruptMaskLow = interruptMask;
-  data->interruptValueLow = interruptValues;
-  data->interruptTypeLow = interruptTypes;
+  data->InterruptMaskLow = interruptMask;
+  data->InterruptValueLow = interruptValues;
+  data->InterruptTypeLow = interruptTypes;
   
 }
 
@@ -867,8 +867,8 @@ void FT2232SPI_ConfigInterruptsHigh(FT2232SPI * data, unsigned char interruptMas
   
   if (!data) return;
   
-  data->interruptMaskHigh = interruptMask;
-  data->interruptValueHigh = interruptValues;
-  data->interruptTypeHigh = interruptTypes;
+  data->InterruptMaskHigh = interruptMask;
+  data->InterruptValueHigh = interruptValues;
+  data->InterruptTypeHigh = interruptTypes;
   
 }

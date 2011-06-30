@@ -24,9 +24,15 @@ typedef struct ECOG_GLUE
   PGA280 * pga280;
   ADS1259 * ads1259;
 
+  unsigned char inBuf[256];
+  unsigned char * inBufPtr;
+
+  unsigned char dataAvailable;
+
 } ECOGSPI;
 
-int ECOGSPI_Init(void); //inicialização da interface
+int ECOGSPI_Init(unsigned char useChecksum); //inicialização da interface
+int ECOGSPI_HwConfig(void); //configuração inicial do hardware
 void ECOGSPI_Cycle(void); //Ciclo de execução
 int ECOGSPI_StartHandling(void); //Inicia tratamento de ciclos
 void ECOGSPI_StopHandling(void); //para tratamento de ciclos (para ciclos)

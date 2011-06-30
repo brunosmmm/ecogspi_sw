@@ -12,6 +12,8 @@ typedef struct EcoGSPIInternalData
   int cycleHandlerStop;
   long int cycleDelay;
 
+  unsigned char cksum;
+
 
 } EcoGSPIIData;
 
@@ -23,9 +25,13 @@ static void FT2232_ADS1259_WriteReadData(unsigned char * writeBuf, unsigned char
 static void * ECOGSPI_CycleHandler(void * arg);
 static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptType, unsigned short InterruptPin);
 
-int ECOGSPI_Init(void)
+int ECOGSPI_Init(unsigned char useChecksum)
 {
   int initStatus = 0x00;
+
+  //inicialização de estruturas locais
+  EcoGSPIData.inBufPtr = EcoGSPIData.inBuf;
+  EcoGSPIData.dataAvailable = 0x00;
 
   //inicialização FTDI2232
   EcoGSPIData.ft2232spi = FT2232SPI_INIT(FT2232SPI_OPMODE_CYCLE,0,FT2232SPI_CPHA1,TRUE,1200, FT2232_InterruptHandler);
@@ -35,13 +41,16 @@ int ECOGSPI_Init(void)
   //direção dos pinos do FT2232H
   //saída: ADRST, UCRST, START
   //entrada: DRDY
-  FT2232SPI_SetLowBitsDirection(EcoGSPIData.ft2232spi, FT2232_PIN_ADRST | FT2232_PIN_UCRST | FT2232_PIN_START);
+  FT2232SPI_SetLowBitsDirection(EcoGSPIData.ft2232spi, ECOGSPI_PIN_ADRST | ECOGSPI_PIN_UCRST | ECOGSPI_PIN_START);
 
   //inicialização PGA280
   EcoGSPIData.pga280 = PGA280_INIT(FT2232_PGA280_ReadWriteData);
 
   //inicialização ADS1259
   EcoGSPIData.ads1259 = ADS1259_INIT(FT2232_ADS1259_WriteReadData);
+
+  //usa checksum?
+  InternalData.cksum = useChecksum;
 
   return initStatus;
 }
@@ -60,7 +69,7 @@ int ECOGSPI_HwConfig(void)
   
   //levanta ADRST, iniciando operação do ADC
   
-  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, FT2232SPI_PIN_ADRST); 
+  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, ECOGSPI_PIN_ADRST);
   
   //espera para garantir que o ADC esteja pronto
   usleep(10000);
@@ -79,13 +88,27 @@ int ECOGSPI_HwConfig(void)
 
   PGA280_EnableSyncIn(EcoGSPIData.pga280);
   
+  //configura taxa de amostragem do ADS1259
+  ADS1259_SetSampleRate(EcoGSPIData.ads1259, ADS1259_RATE_60SPS);
+
   //configura interrupções no FT2232SPI
   //interrupção configurada: pino !DRDY -> borda de descida
-  FT2232SPI_ConfigInterruptsLow(EcoGSPIData.ft2232spi,FT2232SPI_PIN_DRDY,0x00,0x00);
+  FT2232SPI_ConfigInterruptsLow(EcoGSPIData.ft2232spi,ECOGSPI_PIN_DRDY,0x00,0x00);
   
   //coloca o ADS1259 no modo RDATAC
   ADS1259_StartContinuous(EcoGSPIData.ads1259);
   
+  /**Temporário**/
+  //seleciona canal 1
+
+  PGA280_SelectChannel(EcoGSPIData.pga280,PGA280_CHAN_1);
+
+  //seta ganho
+
+  PGA280_SetGain(EcoGSPIData.pga280,PGA280_GAIN_128);
+
+  return 0;
+
 }
   
 
@@ -120,7 +143,7 @@ static void * ECOGSPI_CycleHandler(void * arg)
   FT2232SPI_EnableInterrupts(EcoGSPIData.ft2232spi);
   
   //inicia conversões A/D
-  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, FT2232SPI_PIN_ADRST | FT2232SPI_PIN_START);
+  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, ECOGSPI_PIN_ADRST | ECOGSPI_PIN_START);
 
   //rodando
   InternalData.cycleHandlerRunning = 1;
@@ -145,7 +168,7 @@ static void * ECOGSPI_CycleHandler(void * arg)
   FT2232SPI_DisableInterrupts(EcoGSPIData.ft2232spi);
   
   //para conversões A/D
-  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, FT2232SPI_PIN_ADRST);
+  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, ECOGSPI_PIN_ADRST);
 
   //finaliza
   InternalData.cycleHandlerRunning = 0;
@@ -192,8 +215,28 @@ static void FT2232_ADS1259_WriteReadData(unsigned char * writeBuf, unsigned char
 
 static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptType, unsigned short InterruptPin)
 {
-
+  pthread_mutex_t mutex_handler = PTHREAD_MUTEX_INITIALIZER;
   //atenção: usar mutexes em todas as variáveis compartilhadas
+
+  if (InterruptPin == ECOGSPI_PIN_DRDY)
+    {
+
+    //lê dados
+    //printf("Interrupt!! DRDY; %x\n",InterruptType);
+
+    //buffer circular
+    pthread_mutex_lock(&mutex_handler);
+    if (EcoGSPIData.inBufPtr - EcoGSPIData.inBuf > 255) EcoGSPIData.inBufPtr = EcoGSPIData.inBuf;
+
+    FT2232_ADS1259_WriteReadData(NULL,0,EcoGSPIData.inBufPtr,3);
+
+    EcoGSPIData.inBufPtr += 3;
+
+    EcoGSPIData.dataAvailable += 3;
+
+    pthread_mutex_unlock(&mutex_handler);
+
+    }
 
 
 }

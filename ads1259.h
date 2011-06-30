@@ -24,6 +24,20 @@
 #define ADS1259_CMD_SLEEP    0x04 //modo sleep
 #define ADS1259_CMD_WAKEUP   0x02 //sai do modo sleep
 
+//valores de leitura são complemento de 2
+#define ADS1259_VAL_MAX   0x7FFFFF00 //valor mais positivo possível
+#define ADS1259_VAL_MIN   0x80000000 //valor mais negativo possível
+
+//taxas de amostragem
+#define ADS1259_RATE_10SPS    0x00
+#define ADS1259_RATE_16_6SPS  0x01
+#define ADS1259_RATE_50SPS    0x02
+#define ADS1259_RATE_60SPS    0x03
+#define ADS1259_RATE_400SPS   0x04
+#define ADS1259_RATE_1200SPS  0x05
+#define ADS1259_RATE_3600SPS  0x06
+#define ADS1259_RATE_14400SPS 0x07
+
 //a estruturação e funcionamento deste bloco de código é muito similar ao já implementado para o PGA280.
 
 //NOTA: no ADS1259 é mais econômico re-escrever o máximo possível de registradores de uma só vez
@@ -59,5 +73,8 @@ void ADS1259_StartContinuous(ADS1259 * data);
 
 void ADS1259_EnableSyncOut(ADS1259 * data);
 void ADS1259_DisableSyncOut(ADS1259 * data);
+
+//controla taxa de amostragem
+void ADS1259_SetSampleRate(ADS1259 * data, unsigned char sampleRate);
 
 #endif // ADS1259_H_INCLUDED
