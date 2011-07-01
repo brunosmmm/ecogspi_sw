@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <pthread.h>
 
 #include "ecog_spi.h"
 
@@ -13,7 +12,7 @@ void ex_program(int sig);
 
 int main()
 {
-  pthread_mutex_t mutex_main = PTHREAD_MUTEX_INITIALIZER;
+
 
   int dataCount = 0;
   int dataAvailable = 0;
@@ -38,19 +37,16 @@ int main()
   while (dataCount < SAMPLE_RATE)
     {
 
-  pthread_mutex_lock(&mutex_main);
-  if (EcoGSPIData.dataAvailable > dataAvailable)
+  if (ECOGSPI_DataAvailable() > dataAvailable)
     {
 
     //printf("data disp = %d bytes\n",EcoGSPIData.dataAvailable);
 
-    if (EcoGSPIData.dataAvailable - dataAvailable == 3) dataCount++;
+    if (ECOGSPI_DataAvailable() - dataAvailable == 3) dataCount++;
 
-    dataAvailable = EcoGSPIData.dataAvailable;
+    dataAvailable = ECOGSPI_DataAvailable();
 
     }
-
-  pthread_mutex_unlock(&mutex_main);
 
     }
 
@@ -61,7 +57,8 @@ int main()
   for (i = 0;i < SAMPLE_RATE; i++)
     {
 
-    sampleBuf[i] = (EcoGSPIData.inBuf[3*i] << 24) | (EcoGSPIData.inBuf[3*i+1] << 16) | (EcoGSPIData.inBuf[3*i+2] << 8);
+    //sampleBuf[i] = (EcoGSPIData.inBuf[3*i] << 24) | (EcoGSPIData.inBuf[3*i+1] << 16) | (EcoGSPIData.inBuf[3*i+2] << 8);
+    sampleBuf[i] = (ECOGSPI_ReadBufferByte(3*i) << 24) | (ECOGSPI_ReadBufferByte(3*i+1) < 16) | (ECOGSPI_ReadBufferByte(3*i+2) << 8);
 
     //printf("sample %d = %d\n",i,sampleBuf[i]);
     printf("%f,%f\n",(float)i/(float)SAMPLE_RATE,((float)(sampleBuf[i])/(float)(ADS1259_VAL_MAX)));

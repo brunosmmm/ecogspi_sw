@@ -1,5 +1,7 @@
 #include "ecog_spi.h"
 #include <pthread.h>
+#include <string.h>
+#include "ecog_spi_alerts.h"
 
 //estrutura global contendo os dados
 ECOGSPI EcoGSPIData;
@@ -7,6 +9,7 @@ ECOGSPI EcoGSPIData;
 typedef struct EcoGSPIInternalData
 {
   pthread_t cycleHandler;
+  pthread_t alertHandler;
 
   int cycleHandlerRunning;
   int cycleHandlerStop;
@@ -23,6 +26,7 @@ static EcoGSPIIData InternalData;
 static void FT2232_PGA280_ReadWriteData(unsigned char * sendbuf , unsigned char buflen, unsigned char * readbuf, unsigned char readlen); //escreve e/ou lê um registrador do PGA280 via SPI
 static void FT2232_ADS1259_WriteReadData(unsigned char * writeBuf, unsigned char writeLen, unsigned char * readBuf, unsigned char readLen); //envia e recebe dados do ADS1259 através do PGA280
 static void * ECOGSPI_CycleHandler(void * arg);
+static void * ECOGSPI_AlertHandler(void * arg);
 static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptType, unsigned short InterruptPin);
 
 int ECOGSPI_Init(unsigned char useChecksum)
@@ -32,6 +36,7 @@ int ECOGSPI_Init(unsigned char useChecksum)
   //inicialização de estruturas locais
   EcoGSPIData.inBufPtr = EcoGSPIData.inBuf;
   EcoGSPIData.dataAvailable = 0x00;
+  EcoGSPIData.enableAlerts = 0x00;
 
   //inicialização FTDI2232
   EcoGSPIData.ft2232spi = FT2232SPI_INIT(FT2232SPI_OPMODE_CYCLE,0,FT2232SPI_CPHA1,TRUE,1200, FT2232_InterruptHandler);
@@ -128,9 +133,13 @@ void ECOGSPI_StopHandling(void)
   pthread_mutex_unlock(&mutex_handler);
 
   //espera término
-  if (InternalData.cycleHandlerStop) pthread_join(InternalData.cycleHandler, NULL);
+  if (InternalData.cycleHandlerStop) {
+    pthread_join(InternalData.cycleHandler, NULL);
+    pthread_join(InternalData.alertHandler, NULL);
+  }
 
 }
+
 
 static void * ECOGSPI_CycleHandler(void * arg)
     {
@@ -179,14 +188,63 @@ static void * ECOGSPI_CycleHandler(void * arg)
 
     }
 
+static void * ECOGSPI_AlertHandler(void * arg)
+{
+  EcoGSPIAData * alert = NULL;
+
+  if (!arg) return NULL; //alerta inválido
+
+  //converte argumento para alerta
+  alert = (EcoGSPIAData *)arg;
+
+  //trata alerta
+  switch (alert->alertType)
+  {
+
+    case ECOGSPI_ALERT_DATA_AVAILABLE:
+      //dados estão disponíveis
+
+      //chama função responsável
+      (EcoGSPIData.dataAvailableAlert)(alert->alertParam);
+      break;
+
+    default:
+      break; //alerta inválido?
+  }
+
+  //termina
+  pthread_exit(NULL);
+
+  return NULL;
+
+}
 
 //ciclo da interface ECOGSPI
 
 void ECOGSPI_Cycle(void)
 {
-
+  unsigned char dataAv = 0;
   //ciclo do ft2232h
   FT2232SPI_CYCLE(EcoGSPIData.ft2232spi);
+
+  //verifica se alertas serão disparados
+  if (ECOGSPI_AlertsEnabled())
+    {
+
+    //alertas estão habilitados; verifica
+
+    if ((dataAv = ECOGSPI_DataAvailable()))
+      {
+
+      //dados disponíveis -> alerta:
+      //o alerta é dado em uma nova thread que é criada, por que não podemos parar de pegar amostras que chegam constantemente
+
+      pthread_create(&InternalData.alertHandler, NULL, ECOGSPI_AlertHandler,
+                      (void*)ECOGSPIALERT_NewAlert(ECOGSPI_ALERT_DATA_AVAILABLE,dataAv));
+
+      }
+
+    }
 
 
 }
@@ -238,5 +296,80 @@ static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptTyp
 
     }
 
+}
+
+//verifica se há dados disponíveis
+unsigned char ECOGSPI_DataAvailable(void)
+{
+  pthread_mutex_t mutex_dataAv = PTHREAD_MUTEX_INITIALIZER;
+  unsigned char dataAv = 0;
+
+  //essa paranóia toda é realmente necessária?
+
+  pthread_mutex_lock(&mutex_dataAv);
+  dataAv = EcoGSPIData.dataAvailable;
+  pthread_mutex_unlock(&mutex_dataAv);
+
+  return dataAv;
+
+}
+
+void ECOGSPI_ReadBuffer(unsigned char * dest,unsigned char offset, unsigned char count)
+{
+  pthread_mutex_t mutex_buffer = PTHREAD_MUTEX_INITIALIZER;
+
+  pthread_mutex_lock(&mutex_buffer);
+
+  memcpy(dest,EcoGSPIData.inBuf + offset, count);
+
+  pthread_mutex_unlock(&mutex_buffer);
+
+}
+
+unsigned char ECOGSPI_ReadBufferByte(unsigned char offset)
+{
+  pthread_mutex_t mutex_buffer = PTHREAD_MUTEX_INITIALIZER;
+  unsigned char byte = 0;
+
+  pthread_mutex_lock(&mutex_buffer);
+  byte = EcoGSPIData.inBuf[offset];
+  pthread_mutex_unlock(&mutex_buffer);
+
+  return byte;
+
+}
+
+void ECOGSPI_EnableAlerts(void)
+{
+  pthread_mutex_t mutex_alert = PTHREAD_MUTEX_INITIALIZER;
+
+  pthread_mutex_lock(&mutex_alert);
+  EcoGSPIData.enableAlerts = 0x01;
+  pthread_mutex_unlock(&mutex_alert);
+
+
+}
+
+void ECOGSPI_DisableAlerts(void)
+{
+  pthread_mutex_t mutex_alert = PTHREAD_MUTEX_INITIALIZER;
+
+  pthread_mutex_lock(&mutex_alert);
+  EcoGSPIData.enableAlerts = 0x00;
+  pthread_mutex_unlock(&mutex_alert);
+
+
+}
+
+unsigned char ECOGSPI_AlertsEnabled(void)
+{
+  pthread_mutex_t mutex_alert = PTHREAD_MUTEX_INITIALIZER;
+  unsigned char alerts = 0;
+
+  pthread_mutex_lock(&mutex_alert);
+  alerts = EcoGSPIData.enableAlerts;
+  pthread_mutex_unlock(&mutex_alert);
+
+  return alerts;
 
 }
