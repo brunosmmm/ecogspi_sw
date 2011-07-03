@@ -7,8 +7,13 @@
  * ******************************************************************************/
 #include "ft2232_spi.h"
 
+
 static int send_buf(struct ftdi_context *ftdic, const unsigned char *buf,int size);
 static int get_buf(struct ftdi_context *ftdic, const unsigned char *buf,int size);
+
+
+//static int get_send_buf(struct ftdi_context *ftdic, const unsigned char *buf,
+//    int size, unsigned char * buf2, int size2);
 
 //gambiarra para debug output
 static int verbose = 0;
@@ -20,6 +25,7 @@ const struct usbdev_status devs_ft2232spi[] =
         {},
     };
 
+
 /* Set data bits low-byte command:
  *  value: 0x08  CS=high, DI=low, DO=low, SK=low
  *    dir: 0x0b  CS=output, DI=input, DO=output, SK=output
@@ -28,7 +34,6 @@ const struct usbdev_status devs_ft2232spi[] =
  *  value: 0x18  OE=high, CS=high, DI=low, DO=low, SK=low
  *    dir: 0x1b  OE=output, CS=output, DI=input, DO=output, SK=output
  */
-
 static int send_buf(struct ftdi_context *ftdic, const unsigned char *buf,
     int size)
 {
@@ -60,8 +65,39 @@ static int get_buf(struct ftdi_context *ftdic, const unsigned char *buf,
     buf += r;
     size -= r;
     }
+
   return 0;
 }
+
+//static int get_send_buf(struct ftdi_context *ftdic, const unsigned char *buf,
+//    int size, unsigned char * buf2, int size2)
+//{
+//  int r;
+//
+//  while (size > 0)
+//    {
+//    r = ftdi_read_data(ftdic, (unsigned char *) buf, size);
+//    if (r < 0)
+//      {
+//      msg_perr("ftdi_read_data: %d, %s\n", r,
+//          ftdi_get_error_string(ftdic));
+//      return 1;
+//      }
+//    buf += r;
+//    size -= r;
+//    }
+
+//  //write
+//  r = ftdi_write_data(ftdic, (unsigned char *) buf2, size2);
+//  if (r < 0)
+//    {
+//    msg_perr("ftdi_write_data: %d, %s\n", r,
+//        ftdi_get_error_string(ftdic));
+//    return 1;
+//    }
+//
+//  return 0;
+//}
 
 //seta o estado e direção dos GPIOs ADBUS0-7
 static int busLow_setStateDir(struct ftdi_context * ftdic, unsigned char state, unsigned char direction)
@@ -91,10 +127,13 @@ static int busLow_readState(struct ftdi_context * ftdic, unsigned char * dest)
 {
   int retVal = 0;
   unsigned char getCmd = FT2232_CMD_READDATA_LOW;
+  //unsigned char pins = 0;
 
   if ((retVal = send_buf(ftdic, &getCmd, 1))) return retVal;
+  //if ((retVal = ftdi_read_pins(ftdic,&pins))) return retVal;
 
   return get_buf(ftdic, dest, 1);
+  //return pins;
 }
 
 static int busHigh_readState(struct ftdi_context * ftdic, unsigned char * dest)
@@ -217,17 +256,13 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
       }
     }
 
-  if (!(CSControl & FT2232SPI_RW_HOLDCS))
-    {
-
     msg_pspew("De-assert CS#\n");
     buf[i++] = FT2232_CMD_SETDATA_LOW;
+    data->BUS_VAL_LOW |= FT2232_PINS_CS;
     buf[i++] = data->BUS_VAL_LOW;
     buf[i++] = data->BUS_DIR_LOW;
     if (ret)
       msg_perr("send_buf failed at end: %i\n", ret);
-
-    }
 
   ret = send_buf(ftdic, buf, i);
   failed |= ret;
@@ -287,7 +322,6 @@ FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned 
   if (!ftStruct) return NULL;
 
   //modo de operação
-
   ftStruct->OP_MODE = opMode;
 
   /* inicialização do modo de operação aqui */
@@ -407,10 +441,11 @@ int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsig
   if (ftdi_usb_reset(&data->ftdicContext) < 0) return FT2232SPI_HWERROR;
 
   //latency timer
-  if (ftdi_set_latency_timer(&data->ftdicContext, 2) < 0); //fatal?
+  if (ftdi_set_latency_timer(&data->ftdicContext, 0) < 0); //fatal?
 
   //chunk size
-  if (ftdi_write_data_set_chunksize(&data->ftdicContext, 256)); //fatal?
+  if (ftdi_write_data_set_chunksize(&data->ftdicContext, 128)); //fatal?
+  if (ftdi_read_data_set_chunksize(&data->ftdicContext, 128));
 
   //seta modo SPI
   if (ftdi_set_bitmode(&data->ftdicContext, 0x00, BITMODE_BITBANG_SPI) < 0) return FT2232SPI_HWERROR;
@@ -464,7 +499,7 @@ int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsig
   buf[2] = data->BUS_DIR_LOW; //0x0b -> SCK/MOSI/CS são saídas, MISO é entrada por padrão.
   if (send_buf(&data->ftdicContext, buf, 3)) //envia
     return FT2232SPI_HWERROR;
-    
+
     
   //hardware inicializado corretamente: operação -> OK
   data->OP_STATUS = FT2232SPI_OP_OK;
@@ -528,7 +563,7 @@ void FT2232SPI_EnableCS(FT2232SPI * data)
 
   data->BUS_VAL_LOW &= ~FT2232_PINS_CS;
 
-  buf[0] = SET_BITS_LOW; //comando para setar estado dos bits
+  buf[0] = FT2232_CMD_SETDATA_LOW; //comando para setar estado dos bits
   buf[1] = data->BUS_VAL_LOW; //desativa CS
   buf[2] = data->BUS_DIR_LOW; //direção dos pinos conservada
 

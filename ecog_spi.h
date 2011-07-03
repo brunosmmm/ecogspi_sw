@@ -12,10 +12,13 @@
 #define ECOGSPI_PIN_DRDY  0x20
 #define ECOGSPI_PIN_UCRST 0x80
 
+#define ECOGSPI_BUF_SIZE 128
+
 
 #include "ft2232_spi.h"
-#include "pga280.h"
-#include "ads1259.h"
+#include "PGA280/pga280.h"
+#include "ADS1259/ads1259.h"
+#include "ecog_spi_alerts.h"
 
 //disponível somente durante desenvolvimento
 typedef struct ECOG_GLUE
@@ -25,15 +28,18 @@ typedef struct ECOG_GLUE
   PGA280 * pga280;
   ADS1259 * ads1259;
 
-  unsigned char inBuf[256];
+  unsigned char inBuf[ECOGSPI_BUF_SIZE];
   unsigned char * inBufPtr;
 
-  unsigned char dataAvailable;
+  unsigned int dataAvailable;
 
   unsigned char enableAlerts;
 
+  unsigned char newDataInBuffer;
+
   //função de alerta de dados disponíveis
-  void (* dataAvailableAlert)(unsigned char);
+  alertCallback dataAvailableAlert;
+  alertCallback bufferFullAlert;
 
 } ECOGSPI;
 
@@ -50,6 +56,8 @@ unsigned char ECOGSPI_ReadBufferByte(unsigned char offset); //pega um byte do bu
 
 void ECOGSPI_EnableAlerts(void); //habilita alertas
 void ECOGSPI_DisableAlerts(void); //desabilita alertas
+
+void ECOGSPI_SetDataAvailableAlert(alertCallback func);
 
 unsigned char ECOGSPI_AlertsEnabled(void); //retorna se alertas estão habilitados ou não
 

@@ -33,6 +33,14 @@ PGA280* PGA280_INIT(void (*ReadWriteDataFunc)(unsigned char *, unsigned char, un
   return pgaData;
     }
 
+void PGA280_FREE(PGA280 * data)
+{
+  if (!data) return;
+
+  free(data);
+
+}
+
 unsigned char PGA280_GetData(PGA280 * data, unsigned char RegNum)
 {
   //problemas
@@ -315,7 +323,7 @@ void PGA280_SetErrorSupressionTime(PGA280 * data, unsigned char timeout)
 
 }
 
-void PGA280_EnableMuxControl(PGA280 * data, BOOL MUX0, BOOL MUX1, BOOL MUX2)
+void PGA280_EnableMuxControl(PGA280 * data, unsigned char MUX0, unsigned char MUX1, unsigned char MUX2)
 {
   if (!data) return;
 

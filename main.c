@@ -4,22 +4,23 @@
 
 #include "ecog_spi.h"
 
-#define SAMPLE_RATE 60
+#define SAMPLE_RATE 400
+int sampleBuf[SAMPLE_RATE];
 
 extern ECOGSPI EcoGSPIData;
 
 void ex_program(int sig);
 
+alertCallback dataAvailableAlert(int offset);
+
+unsigned int x = 0;
+
 int main()
 {
+  //int dataCount = 0;
+  //int dataAvailable = 0;
 
-
-  int dataCount = 0;
-  int dataAvailable = 0;
-
-  int i = 0;
-
-  int sampleBuf[SAMPLE_RATE];
+  //int i = 0;
 
   //pega sinal de término
   (void) signal(SIGINT, ex_program);
@@ -30,40 +31,17 @@ int main()
   //inicializa hardware
   ECOGSPI_HwConfig();
 
+  //configura alerta
+  ECOGSPI_SetDataAvailableAlert(dataAvailableAlert);
+
+  //habilita alertas
+  ECOGSPI_EnableAlerts();
+
   //inicia ciclos de execução
   ECOGSPI_StartHandling();
 
-  //mutex para garantir sincronia
-  while (dataCount < SAMPLE_RATE)
-    {
-
-  if (ECOGSPI_DataAvailable() > dataAvailable)
-    {
-
-    //printf("data disp = %d bytes\n",EcoGSPIData.dataAvailable);
-
-    if (ECOGSPI_DataAvailable() - dataAvailable == 3) dataCount++;
-
-    dataAvailable = ECOGSPI_DataAvailable();
-
-    }
-
-    }
-
-  printf("Parando threads...\n");
-  ECOGSPI_StopHandling();
-
-  //forma amostras
-  for (i = 0;i < SAMPLE_RATE; i++)
-    {
-
-    //sampleBuf[i] = (EcoGSPIData.inBuf[3*i] << 24) | (EcoGSPIData.inBuf[3*i+1] << 16) | (EcoGSPIData.inBuf[3*i+2] << 8);
-    sampleBuf[i] = (ECOGSPI_ReadBufferByte(3*i) << 24) | (ECOGSPI_ReadBufferByte(3*i+1) < 16) | (ECOGSPI_ReadBufferByte(3*i+2) << 8);
-
-    //printf("sample %d = %d\n",i,sampleBuf[i]);
-    printf("%f,%f\n",(float)i/(float)SAMPLE_RATE,((float)(sampleBuf[i])/(float)(ADS1259_VAL_MAX)));
-
-    }
+  //loop infinito
+  while(1);
 
 
   printf("FIM\n");
@@ -71,9 +49,28 @@ int main()
 }
 
 void ex_program(int sig) {
+  int i = 0;
  printf("Parando threads e saindo...\n");
 
  ECOGSPI_StopHandling();
 
+ printf("%d amostras coletadas\n",x);
+
+ for (i = 0; i < x; i++)
+
+   printf("%f,%f\n",(float)i/(float)SAMPLE_RATE,((float)(sampleBuf[i])/(float)(ADS1259_VAL_MAX)));
+
  exit(0);
+}
+
+alertCallback dataAvailableAlert(int offset)
+{
+
+  if (x > SAMPLE_RATE-1) ex_program(0);
+
+  sampleBuf[x] = (ECOGSPI_ReadBufferByte(offset) << 24) | (ECOGSPI_ReadBufferByte(offset+1) < 16) | (ECOGSPI_ReadBufferByte(offset+2) << 8);
+
+  x++;
+  //printf("saindo\n");
+
 }

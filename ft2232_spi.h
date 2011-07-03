@@ -11,13 +11,14 @@
 
 //Header para interface spi ft2232 cirurgicamente removida do projeto flashrom
 
-
 //includes
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <ftdi.h>
+
+#include "libftdi-0.19/src/ftdi.h"
+
 #include <stdarg.h>
 
 
@@ -183,8 +184,10 @@ typedef struct FT2232SPIDATA
   //param2 = tipo de interrupção
   //param3 = causador da interrupção (16 bits, representa High (MSB) e Low (LSB) concatenados)
   void (*InterruptHandler)(struct FT2232SPIDATA*,unsigned char,unsigned short);
+
   //struct da libftdi
   struct ftdi_context ftdicContext;
+
 
   //comando de envio, depende de CPHA
   unsigned char SEND_MODE;
