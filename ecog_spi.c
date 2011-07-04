@@ -97,7 +97,7 @@ int ECOGSPI_HwConfig(void)
   PGA280_EnableSyncIn(EcoGSPIData.pga280);
   
   //configura taxa de amostragem do ADS1259
-  ADS1259_SetSampleRate(EcoGSPIData.ads1259, ADS1259_RATE_400SPS);
+  ADS1259_SetSampleRate(EcoGSPIData.ads1259, ADS1259_RATE_60SPS);
 
   //configura interrupções no FT2232SPI
   //interrupção configurada: pino !DRDY -> borda de descida
@@ -125,6 +125,16 @@ void ECOGSPI_SetDataAvailableAlert(alertCallback func)
 
   pthread_mutex_lock(&mutex_handler);
   EcoGSPIData.dataAvailableAlert = func;
+  pthread_mutex_unlock(&mutex_handler);
+
+}
+
+void ECOGSPI_SetBufferFullAlert(alertCallback func)
+{
+  pthread_mutex_t mutex_handler = PTHREAD_MUTEX_INITIALIZER;
+
+  pthread_mutex_lock(&mutex_handler);
+  EcoGSPIData.bufferFullAlert = func;
   pthread_mutex_unlock(&mutex_handler);
 
 }
@@ -193,7 +203,7 @@ static void * ECOGSPI_CycleHandler(void * arg)
   FT2232SPI_DisableInterrupts(EcoGSPIData.ft2232spi);
   
   //para conversões A/D
-  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, ECOGSPI_PIN_ADRST);
+  FT2232SPI_SetLowBitsState(EcoGSPIData.ft2232spi, 0x00/*ECOGSPI_PIN_ADRST*/);
 
   //finaliza
   InternalData.cycleHandlerRunning = 0;
@@ -276,11 +286,11 @@ void ECOGSPI_Cycle(void)
       //dados disponíveis -> alerta:
       //o alerta é dado em uma nova thread que é criada, por que não podemos parar de pegar amostras que chegam constantemente
 
-      //pthread_create(&InternalData.alertHandler, NULL, ECOGSPI_AlertHandler,
-      //                (void*)ECOGSPIALERT_NewAlert(ECOGSPI_ALERT_DATA_AVAILABLE,dataOffset));
+      pthread_create(&InternalData.alertHandler, NULL, ECOGSPI_AlertHandler,
+                      (void*)ECOGSPIALERT_NewAlert(ECOGSPI_ALERT_DATA_AVAILABLE,dataOffset));
 
-      //pthread_join(InternalData.alertHandler, NULL);
-      ECOGSPI_AlertHandler((void*)ECOGSPIALERT_NewAlert(ECOGSPI_ALERT_DATA_AVAILABLE,dataOffset));
+      pthread_join(InternalData.alertHandler, NULL);
+      //ECOGSPI_AlertHandler((void*)ECOGSPIALERT_NewAlert(ECOGSPI_ALERT_DATA_AVAILABLE,dataOffset));
 
       }
 
@@ -323,7 +333,14 @@ static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptTyp
 
     //buffer circular
     pthread_mutex_lock(&mutex_handler);
-    if (EcoGSPIData.inBufPtr - EcoGSPIData.inBuf > ECOGSPI_BUF_SIZE-3) EcoGSPIData.inBufPtr = EcoGSPIData.inBuf;
+    if (EcoGSPIData.inBufPtr - EcoGSPIData.inBuf > ECOGSPI_BUF_SIZE-3)
+      {
+      EcoGSPIData.inBufPtr = EcoGSPIData.inBuf;
+
+      pthread_create(&InternalData.alertHandler, NULL, ECOGSPI_AlertHandler,
+                      (void*)ECOGSPIALERT_NewAlert(ECOGSPI_ALERT_BUFFER_FULL,ECOGSPI_BUF_SIZE));
+
+      }
 
     FT2232_ADS1259_WriteReadData(NULL,0,EcoGSPIData.inBufPtr,3);
 

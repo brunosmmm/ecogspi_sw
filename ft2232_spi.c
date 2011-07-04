@@ -126,14 +126,13 @@ static int busHigh_setStateDir(struct ftdi_context * ftdic, unsigned char state,
 static int busLow_readState(struct ftdi_context * ftdic, unsigned char * dest)
 {
   int retVal = 0;
-  unsigned char getCmd = FT2232_CMD_READDATA_LOW;
-  //unsigned char pins = 0;
+  //unsigned char getCmd = FT2232_CMD_READDATA_LOW;
 
-  if ((retVal = send_buf(ftdic, &getCmd, 1))) return retVal;
-  //if ((retVal = ftdi_read_pins(ftdic,&pins))) return retVal;
+  //if ((retVal = send_buf(ftdic, &getCmd, 1))) return retVal;
+  if ((retVal = ftdi_read_pins(ftdic,dest))) return retVal;
 
-  return get_buf(ftdic, dest, 1);
-  //return pins;
+  //return get_buf(ftdic, dest, 1);
+  return retVal;
 }
 
 static int busHigh_readState(struct ftdi_context * ftdic, unsigned char * dest)
@@ -684,7 +683,7 @@ void FT2232SPI_CYCLE(FT2232SPI * data)
   LowPinsState = data->BUS_VAL_LOW;
 
   //realiza update
-  FT2232SPI_GetHighBitsState(data);
+  //FT2232SPI_GetHighBitsState(data);
   FT2232SPI_GetLowBitsState(data);
 
   //verifica interrupções

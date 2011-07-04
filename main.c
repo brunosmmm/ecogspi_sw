@@ -4,7 +4,7 @@
 
 #include "ecog_spi.h"
 
-#define SAMPLE_RATE 400
+#define SAMPLE_RATE 60
 int sampleBuf[SAMPLE_RATE];
 
 extern ECOGSPI EcoGSPIData;
@@ -12,6 +12,7 @@ extern ECOGSPI EcoGSPIData;
 void ex_program(int sig);
 
 alertCallback dataAvailableAlert(int offset);
+alertCallback bufferFullAlert(int buf_size);
 
 unsigned int x = 0;
 
@@ -33,6 +34,7 @@ int main()
 
   //configura alerta
   ECOGSPI_SetDataAvailableAlert(dataAvailableAlert);
+  ECOGSPI_SetBufferFullAlert(bufferFullAlert);
 
   //habilita alertas
   ECOGSPI_EnableAlerts();
@@ -50,9 +52,9 @@ int main()
 
 void ex_program(int sig) {
   int i = 0;
- printf("Parando threads e saindo...\n");
 
  ECOGSPI_StopHandling();
+ printf("Parando threads e saindo...\n");
 
  printf("%d amostras coletadas\n",x);
 
@@ -69,8 +71,13 @@ alertCallback dataAvailableAlert(int offset)
   if (x > SAMPLE_RATE-1) ex_program(0);
 
   sampleBuf[x] = (ECOGSPI_ReadBufferByte(offset) << 24) | (ECOGSPI_ReadBufferByte(offset+1) < 16) | (ECOGSPI_ReadBufferByte(offset+2) << 8);
-
   x++;
   //printf("saindo\n");
+
+}
+
+alertCallback bufferFullAlert(int buf_size)
+{
+printf("buffer cheio\n");
 
 }

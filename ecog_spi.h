@@ -58,6 +58,7 @@ void ECOGSPI_EnableAlerts(void); //habilita alertas
 void ECOGSPI_DisableAlerts(void); //desabilita alertas
 
 void ECOGSPI_SetDataAvailableAlert(alertCallback func);
+void ECOGSPI_SetBufferFullAlert(alertCallback func);
 
 unsigned char ECOGSPI_AlertsEnabled(void); //retorna se alertas estão habilitados ou não
 
