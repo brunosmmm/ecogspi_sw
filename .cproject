@@ -33,11 +33,9 @@
 <tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1802159312" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
 <option id="gnu.c.link.option.libs.1204085106" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 <listOptionValue builtIn="false" value="pthread"/>
-<listOptionValue builtIn="false" value="ftd2xx"/>
+<listOptionValue builtIn="false" value="usb-1.0"/>
 </option>
-<option id="gnu.c.link.option.paths.1253549453" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths">
-<listOptionValue builtIn="false" value="`libftdi-config --libs`"/>
-</option>
+<option id="gnu.c.link.option.paths.1253549453" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths"/>
 <inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1594434086" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 <additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 <additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -50,7 +48,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="ft2232_spi_ftd2xx.h|ft2232_spi_ftd2xx.c|libftdi-0.19/examples|SWIG|ecog_spi_wrap.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="libftdi-1.0/examples|libftdi-1.0/ftdi_eeprom|libftdi-0.19|ft2232_spi_ftd2xx.h|ft2232_spi_ftd2xx.c|libftdi-0.19/examples|SWIG|ecog_spi_wrap.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>
@@ -264,7 +262,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="ft2232_spi_ftd2xx.h|ft2232_spi_ftd2xx.c|libftdi-0.19/examples|SWIG|ecog_spi_wrap.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="libftdi-1.0/examples|libftdi-1.0/ftdi_eeprom|libftdi-0.19|ft2232_spi_ftd2xx.h|ft2232_spi_ftd2xx.c|libftdi-0.19/examples|SWIG|ecog_spi_wrap.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>

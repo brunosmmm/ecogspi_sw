@@ -12,7 +12,9 @@
 #define ECOGSPI_PIN_DRDY  0x20
 #define ECOGSPI_PIN_UCRST 0x80
 
-#define ECOGSPI_BUF_SIZE 128
+#define ECOGSPI_BUF_SIZE 4096
+
+#define ECOGSPI_FT2232_CHUNK 4096
 
 
 #include "ft2232_spi.h"
@@ -30,6 +32,8 @@ typedef struct ECOG_GLUE
 
   unsigned char inBuf[ECOGSPI_BUF_SIZE];
   unsigned char * inBufPtr;
+
+  unsigned char appBuffer[ECOGSPI_BUF_SIZE];
 
   unsigned int dataAvailable;
 
@@ -51,7 +55,7 @@ void ECOGSPI_Cycle(void); //Ciclo de execução
 int ECOGSPI_StartHandling(void); //Inicia tratamento de ciclos
 void ECOGSPI_StopHandling(void); //para tratamento de ciclos (para ciclos)
 unsigned char ECOGSPI_DataAvailable(void); //retorna quantos pacotes de dados estão disponíveis
-void ECOGSPI_ReadBuffer(unsigned char * dest,unsigned char offset, unsigned char count); //pega dados do buffer
+void ECOGSPI_ReadBuffer(unsigned char * dest,unsigned char offset, unsigned int count); //pega dados do buffer
 unsigned char ECOGSPI_ReadBufferByte(unsigned char offset); //pega um byte do buffer
 
 void ECOGSPI_EnableAlerts(void); //habilita alertas

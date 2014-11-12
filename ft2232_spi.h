@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "libftdi-0.19/src/ftdi.h"
+#include "libftdi-1.0/src/ftdi.h"
 
 #include <stdarg.h>
 
@@ -58,6 +58,8 @@ int print(int type, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 //pinos
 #define FT2232_PINS_CS 0x08
 #define FT2232_PINS_CK 0x01
+#define FT2232_PINS_DI 0x04
+#define FT2232_PINS_D0 0x02
 
 //implementação bmorais
 #define FT2232_CKDIV5 0x01 //flag de divisão de clock x5
@@ -188,6 +190,8 @@ typedef struct FT2232SPIDATA
   //struct da libftdi
   struct ftdi_context ftdicContext;
 
+  //bytes a receber do FT2232H futuramente
+  unsigned int bytesToReceive;
 
   //comando de envio, depende de CPHA
   unsigned char SEND_MODE;
@@ -206,7 +210,7 @@ FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned 
 //libera memória ocupada por uma estrutura FT2232SPI
 void FT2232SPI_FREE(FT2232SPI * data);
 
-int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsigned int INTERFACE); //inicialização do hardware
+int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsigned int INTERFACE, unsigned int chunkSize); //inicialização do hardware
 
 void FT2232SPI_CYCLE(FT2232SPI * data); //ciclo de excecução
 
@@ -246,5 +250,9 @@ void FT2232SPI_ConfigInterruptsLow(FT2232SPI * data, unsigned char interruptMask
                                     
 void FT2232SPI_ConfigInterruptsHigh(FT2232SPI * data, unsigned char interruptMask, unsigned char interruptValues,
                                     unsigned char interruptTypes); //configura interrupções de pinos altos
+
+unsigned int FT2232SPI_BytesToReceive(FT2232SPI * data); //retorna quantidade de bytes a receber
+
+int FT2232SPI_ReceiveImmediatly(FT2232SPI * data, unsigned int count, unsigned char * dest); //recebe dados imediatamente
 
 #endif // FT2232_SPI_H_INCLUDED

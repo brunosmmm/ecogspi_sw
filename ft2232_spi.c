@@ -52,16 +52,49 @@ static int get_buf(struct ftdi_context *ftdic, const unsigned char *buf,
     int size)
 {
   int r;
+  int bits = 8;
+  unsigned char int_buf[3];
+
+  unsigned char pins = 0x00;
+  unsigned char result = 0x00;
 
   while (size > 0)
     {
+
+#if(0)
+    //true bit-banging
+    while (bits > 0)
+      {
+
+      int_buf[0] = 0x12;
+      int_buf[1] = 0x01;
+      int_buf[2] = 0x00;
+
+      //bota
+      ftdi_write_data(ftdic, int_buf, 3);
+
+      //tira
+      ftdi_read_pins(ftdic,&pins);
+
+      result |= (((pins & FT2232_PINS_DI) << (8-FT2232_PINS_DI)) >> (8-bits));
+
+      bits--;
+
+      }
+
+    bits = 8;
+
+    memcpy((unsigned char *)buf, &result, 1);
+#endif
     r = ftdi_read_data(ftdic, (unsigned char *) buf, size);
     if (r < 0)
-      {
-      msg_perr("ftdi_read_data: %d, %s\n", r,
-          ftdi_get_error_string(ftdic));
-      return 1;
-      }
+    {
+    msg_perr("ftdi_read_data: %d, %s\n", r,
+        ftdi_get_error_string(ftdic));
+    return 1;
+    }
+
+
     buf += r;
     size -= r;
     }
@@ -145,6 +178,25 @@ static int busHigh_readState(struct ftdi_context * ftdic, unsigned char * dest)
   return get_buf(ftdic, dest, 1);
 }
 
+//recebe dados imediatamente
+int FT2232SPI_ReceiveImmediatly(FT2232SPI * data, unsigned int count, unsigned char * dest)
+{
+  int retVal = 0;
+
+  if (!data) return -1;
+
+  retVal = get_buf(&data->ftdicContext,dest,count);
+
+  if (!retVal) {
+
+    data->bytesToReceive -= count;
+
+  }
+
+  return retVal;
+
+}
+
 int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int readcnt,
     const unsigned char *writearr, unsigned char *readarr,unsigned char CSControl)
 {
@@ -163,10 +215,10 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
 
   //espera término do ciclo para enviar dados
   //atenção: se o estado é OP_INT, realiza transferência normalmente.
-  while (data->OP_STATUS == FT2232SPI_OP_CYCLE) ;  
+  //while (data->OP_STATUS == FT2232SPI_OP_CYCLE) ;
     
   //indica que está transferindo dados
-  data->OP_STATUS = FT2232SPI_OP_XFER;
+  //data->OP_STATUS = FT2232SPI_OP_XFER;
       
 
   //não é possível escrever ou ler mais de 65536 bytes por vez.
@@ -233,26 +285,32 @@ int FT2232SPI_SendRecvData(FT2232SPI* data, unsigned int writecnt, unsigned int 
     buf[i++] = SPI_READ_MODE1;
     buf[i++] = (readcnt - 1) & 0xff;
     buf[i++] = ((readcnt - 1) >> 8) & 0xff;
-    ret = send_buf(ftdic, buf, i);
-    failed = ret;
+    //ret = send_buf(ftdic, buf, i);
+    //failed = ret;
     /* We can't abort here, we still have to deassert CS#. */
-    if (ret)
-      msg_perr("send_buf failed before read: %i\n",
-          ret);
-    i = 0;
-    if (ret == 0)
-      {
+    //if (ret)
+    //  msg_perr("send_buf failed before read: %i\n",
+    //      ret);
+    //i = 0;
+    //if (ret == 0)
+    // {
       /*
        * FIXME: This is unreliable. There's no guarantee that
        * we read the response directly after sending the read
        * command. We may be scheduled out etc.
        */
-      ret = get_buf(ftdic, readarr, readcnt);
-      failed |= ret;
+      //ret = get_buf(ftdic, readarr, readcnt);
+      //failed |= ret;
       /* We can't abort here either. */
-      if (ret)
-        msg_perr("get_buf failed: %i\n", ret);
-      }
+      //if (ret)
+      //  msg_perr("get_buf failed: %i\n", ret);
+
+      //abordagem diferente: conta quantos bytes foram guardados no buffer interno do FT2232H ao executar o comando
+      data->bytesToReceive += readcnt;
+
+      //buf[i++] = 0x87;
+
+    //  }
     }
 
     msg_pspew("De-assert CS#\n");
@@ -375,6 +433,10 @@ FT2232SPI * FT2232SPI_INIT(unsigned char opMode, unsigned char csMode, unsigned 
   ftStruct->CKDIV_LOW = (ckDiv - 1) & 0xff;
   ftStruct->CKDIV_HIGH = ((ckDiv - 1) >> 8) & 0xff;
 
+  //sem bytes para receber
+  ftStruct->bytesToReceive = 0x00;
+
+
 
   //estrutura de dados inicializada, porém operação neste ponto: parado
   ftStruct->OP_STATUS = FT2232SPI_OP_STOP;
@@ -411,7 +473,7 @@ void FT2232SPI_SetCKMode(FT2232SPI * data, unsigned char ckMode)
 }
 
 //inicialização do hardware FT2232H
-int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsigned int INTERFACE)
+int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsigned int INTERFACE, unsigned int chunkSize)
 {
   int f;
   unsigned char buf[10];
@@ -440,11 +502,11 @@ int FT2232SPI_HWINIT(FT2232SPI * data, unsigned int VID, unsigned int PID, unsig
   if (ftdi_usb_reset(&data->ftdicContext) < 0) return FT2232SPI_HWERROR;
 
   //latency timer
-  if (ftdi_set_latency_timer(&data->ftdicContext, 0) < 0); //fatal?
+  if (ftdi_set_latency_timer(&data->ftdicContext, 50) < 0); //fatal?
 
   //chunk size
-  if (ftdi_write_data_set_chunksize(&data->ftdicContext, 128)); //fatal?
-  if (ftdi_read_data_set_chunksize(&data->ftdicContext, 128));
+  if (ftdi_write_data_set_chunksize(&data->ftdicContext, chunkSize)); //fatal?
+  if (ftdi_read_data_set_chunksize(&data->ftdicContext, chunkSize));
 
   //seta modo SPI
   if (ftdi_set_bitmode(&data->ftdicContext, 0x00, BITMODE_BITBANG_SPI) < 0) return FT2232SPI_HWERROR;
@@ -905,4 +967,13 @@ void FT2232SPI_ConfigInterruptsHigh(FT2232SPI * data, unsigned char interruptMas
   data->InterruptValueHigh = interruptValues;
   data->InterruptTypeHigh = interruptTypes;
   
+}
+
+
+unsigned int FT2232SPI_BytesToReceive(FT2232SPI * data)
+{
+
+  if (!data) return 0;
+
+  return data->bytesToReceive;
 }

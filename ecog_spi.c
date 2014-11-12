@@ -44,7 +44,7 @@ int ECOGSPI_Init(unsigned char useChecksum)
   //inicialização FTDI2232 - clock de 10 MHz
   EcoGSPIData.ft2232spi = FT2232SPI_INIT(FT2232SPI_OPMODE_CYCLE,0,FT2232SPI_CPHA1,FALSE,6, FT2232_InterruptHandler);
 
-  initStatus += FT2232SPI_HWINIT(EcoGSPIData.ft2232spi,FTDI_VID,FTDI_FT2232H_PID,INTERFACE_A);
+  initStatus += FT2232SPI_HWINIT(EcoGSPIData.ft2232spi,FTDI_VID,FTDI_FT2232H_PID,INTERFACE_A,ECOGSPI_FT2232_CHUNK);
 
   //direção dos pinos do FT2232H
   //saída: ADRST, UCRST, START
@@ -97,7 +97,7 @@ int ECOGSPI_HwConfig(void)
   PGA280_EnableSyncIn(EcoGSPIData.pga280);
   
   //configura taxa de amostragem do ADS1259
-  ADS1259_SetSampleRate(EcoGSPIData.ads1259, ADS1259_RATE_60SPS);
+  ADS1259_SetSampleRate(EcoGSPIData.ads1259, ADS1259_RATE_1200SPS);
 
   //configura interrupções no FT2232SPI
   //interrupção configurada: pino !DRDY -> borda de descida
@@ -114,6 +114,9 @@ int ECOGSPI_HwConfig(void)
   //seta ganho
 
   PGA280_SetGain(EcoGSPIData.pga280,PGA280_GAIN_128);
+
+  //limpa buffer
+  ftdi_usb_purge_rx_buffer(&EcoGSPIData.ft2232spi->ftdicContext);
 
   return 0;
 
@@ -195,7 +198,7 @@ static void * ECOGSPI_CycleHandler(void * arg)
     //delay?
 
     /**TODO: usar delay adequado que não paralize toda a aplicação*/
-    //usleep(1000);
+    //usleep(10);
 
     }
 
@@ -267,8 +270,13 @@ void ECOGSPI_Cycle(void)
   int dataOffset = 0;
   pthread_mutex_t mutex_databuf = PTHREAD_MUTEX_INITIALIZER;
 
+  unsigned char buffer[ECOGSPI_FT2232_CHUNK];
+
   //ciclo do ft2232h
   FT2232SPI_CYCLE(EcoGSPIData.ft2232spi);
+
+  //if (!FT2232SPI_ReceiveImmediatly(EcoGSPIData.ft2232spi,ECOGSPI_FT2232_CHUNK,buffer))
+  //  printf("dados\n");
 
   //verifica se alertas serão disparados
   if (ECOGSPI_AlertsEnabled())
@@ -285,6 +293,9 @@ void ECOGSPI_Cycle(void)
 
       //dados disponíveis -> alerta:
       //o alerta é dado em uma nova thread que é criada, por que não podemos parar de pegar amostras que chegam constantemente
+
+      //copia dados para buffer da aplicação
+      memcpy(EcoGSPIData.appBuffer,EcoGSPIData.inBuf,ECOGSPI_BUF_SIZE);
 
       pthread_create(&InternalData.alertHandler, NULL, ECOGSPI_AlertHandler,
                       (void*)ECOGSPIALERT_NewAlert(ECOGSPI_ALERT_DATA_AVAILABLE,dataOffset));
@@ -333,7 +344,7 @@ static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptTyp
 
     //buffer circular
     pthread_mutex_lock(&mutex_handler);
-    if (EcoGSPIData.inBufPtr - EcoGSPIData.inBuf > ECOGSPI_BUF_SIZE-3)
+    if (EcoGSPIData.inBufPtr - EcoGSPIData.inBuf > ECOGSPI_BUF_SIZE-1)
       {
       EcoGSPIData.inBufPtr = EcoGSPIData.inBuf;
 
@@ -344,12 +355,26 @@ static void FT2232_InterruptHandler(FT2232SPI * data, unsigned char InterruptTyp
 
     FT2232_ADS1259_WriteReadData(NULL,0,EcoGSPIData.inBufPtr,3);
 
-    EcoGSPIData.inBufPtr += 3;
+    if (FT2232SPI_BytesToReceive(data) > ECOGSPI_FT2232_CHUNK-1)
+      {
+      //printf("bytes_to_rec: %d\n",FT2232SPI_BytesToReceive(EcoGSPIData.ft2232spi));
+      //já temos um chunk para receber, é hora de receber??
+      FT2232SPI_ReceiveImmediatly(data, ECOGSPI_FT2232_CHUNK, EcoGSPIData.inBufPtr);
+      EcoGSPIData.inBufPtr += ECOGSPI_FT2232_CHUNK;
 
-    if (EcoGSPIData.dataAvailable >= ECOGSPI_BUF_SIZE) EcoGSPIData.dataAvailable = ECOGSPI_BUF_SIZE;
-    else EcoGSPIData.dataAvailable += 3;
+      if (EcoGSPIData.dataAvailable >= ECOGSPI_BUF_SIZE) EcoGSPIData.dataAvailable = ECOGSPI_BUF_SIZE;
+      else EcoGSPIData.dataAvailable += ECOGSPI_FT2232_CHUNK;
 
-    EcoGSPIData.newDataInBuffer = 0x01;
+      EcoGSPIData.newDataInBuffer = 0x01;
+
+      }
+
+    //EcoGSPIData.inBufPtr += 3;
+
+    //if (EcoGSPIData.dataAvailable >= ECOGSPI_BUF_SIZE) EcoGSPIData.dataAvailable = ECOGSPI_BUF_SIZE;
+    //else EcoGSPIData.dataAvailable += 3;
+
+    //EcoGSPIData.newDataInBuffer = 0x01;
 
     pthread_mutex_unlock(&mutex_handler);
 
@@ -373,13 +398,14 @@ unsigned char ECOGSPI_DataAvailable(void)
 
 }
 
-void ECOGSPI_ReadBuffer(unsigned char * dest,unsigned char offset, unsigned char count)
+void ECOGSPI_ReadBuffer(unsigned char * dest,unsigned char offset, unsigned int count)
 {
   pthread_mutex_t mutex_buffer = PTHREAD_MUTEX_INITIALIZER;
 
   pthread_mutex_lock(&mutex_buffer);
 
-  memcpy(dest,EcoGSPIData.inBuf + offset, count);
+  //memcpy(dest,EcoGSPIData.inBuf + offset, count);
+  memcpy(dest,EcoGSPIData.appBuffer + offset, count);
 
   pthread_mutex_unlock(&mutex_buffer);
 
@@ -391,7 +417,8 @@ unsigned char ECOGSPI_ReadBufferByte(unsigned char offset)
   unsigned char byte = 0;
 
   pthread_mutex_lock(&mutex_buffer);
-  byte = EcoGSPIData.inBuf[offset];
+  //byte = EcoGSPIData.inBuf[offset];
+  byte = EcoGSPIData.appBuffer[offset];
   pthread_mutex_unlock(&mutex_buffer);
 
   return byte;
